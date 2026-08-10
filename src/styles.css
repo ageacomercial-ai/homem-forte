@@ -39,8 +39,11 @@
   --color-ring-offset-background: var(--background);
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
+  --color-green: var(--green);
+  --color-green-deep: var(--green-deep);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+
   --font-display: "Oswald", "Arial Narrow", sans-serif;
   --font-sans: "Barlow", system-ui, sans-serif;
 }
@@ -62,8 +65,12 @@
   --gold: oklch(0.78 0.13 85);
   --gold-soft: oklch(0.62 0.1 85);
 
-  --primary: oklch(0.78 0.13 85);
-  --primary-foreground: oklch(0.16 0.01 80);
+  --green: oklch(0.72 0.17 152);
+  --green-deep: oklch(0.52 0.14 152);
+
+  --primary: oklch(0.72 0.17 152);
+  --primary-foreground: oklch(0.16 0.02 152);
+
 
   --secondary: oklch(0.23 0.006 250);
   --secondary-foreground: oklch(0.97 0.002 250);
@@ -155,5 +162,49 @@
     opacity: 1;
     transform: none;
     transition: none;
+  }
+}
+
+/* ---- CTA verde com leve movimento flutuante ---- */
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--green) 45%, transparent); }
+  70% { box-shadow: 0 0 0 16px color-mix(in oklab, var(--green) 0%, transparent); }
+}
+
+@keyframes ken-burns {
+  from { transform: scale(1.06); }
+  to { transform: scale(1.16); }
+}
+
+@utility btn-green {
+  background: linear-gradient(135deg, var(--green), var(--green-deep));
+  color: oklch(0.13 0.02 152);
+  animation: float-soft 3.4s ease-in-out infinite, pulse-green 3.4s ease-in-out infinite;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.btn-green:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px) scale(1.02);
+}
+
+@utility float-soft {
+  animation: float-soft 3.4s ease-in-out infinite;
+}
+
+@utility ken-burns {
+  animation: ken-burns 18s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-green,
+  .float-soft,
+  .ken-burns {
+    animation: none !important;
   }
 }
