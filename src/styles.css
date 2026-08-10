@@ -39,8 +39,11 @@
   --color-ring-offset-background: var(--background);
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
+  --color-green: var(--green);
+  --color-green-deep: var(--green-deep);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+
   --font-display: "Oswald", "Arial Narrow", sans-serif;
   --font-sans: "Barlow", system-ui, sans-serif;
 }
@@ -62,8 +65,12 @@
   --gold: oklch(0.78 0.13 85);
   --gold-soft: oklch(0.62 0.1 85);
 
-  --primary: oklch(0.78 0.13 85);
-  --primary-foreground: oklch(0.16 0.01 80);
+  --green: oklch(0.72 0.17 152);
+  --green-deep: oklch(0.52 0.14 152);
+
+  --primary: oklch(0.72 0.17 152);
+  --primary-foreground: oklch(0.16 0.02 152);
+
 
   --secondary: oklch(0.23 0.006 250);
   --secondary-foreground: oklch(0.97 0.002 250);
