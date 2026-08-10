@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
 
-import frasco from "@/assets/homem-forte-frasco.jpg.asset.json";
+import frasco from "@/assets/homem-forte-frasco.jpg";
 import medico from "@/assets/homem-forte-medico.jpg.asset.json";
 import { Reveal } from "@/components/Reveal";
 import { usePastHero } from "@/hooks/use-reveal";
@@ -460,9 +460,9 @@ function HomemForte() {
 
             <div className="relative">
               <div className="absolute inset-6 bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--gold)_14%,transparent),transparent_65%)] blur-2xl" />
-              {/* [IMAGEM REAL DO PRODUTO] — substituir o ficheiro em src/assets/homem-forte-frasco.jpg.asset.json */}
+              {/* [IMAGEM REAL DO PRODUTO] — src/assets/homem-forte-frasco.jpg */}
               <img
-                src={frasco.url}
+                src={frasco}
                 alt="Frasco de 500 ml do suplemento HOMEM FORTE sobre mesa de madeira"
                 width={828}
                 height={1148}
