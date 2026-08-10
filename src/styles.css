@@ -140,6 +140,33 @@
   height: 1px;
 }
 
+/* Botão principal — usado em todos os CTAs "QUERO O HOMEM FORTE" */
+@utility cta-primary {
+  background: var(--gradient-gold);
+  color: var(--primary-foreground);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+  will-change: transform;
+}
+
+.cta-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold);
+  filter: brightness(1.06);
+}
+
+.cta-primary:active {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(0.96);
+}
+
+.cta-primary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
 /* Fade-in discreto ao entrar na viewport */
 @utility reveal {
   opacity: 0;

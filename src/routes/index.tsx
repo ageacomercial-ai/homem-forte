@@ -3,6 +3,9 @@ import { useMemo, useState, type FormEvent } from "react";
 
 import frasco from "@/assets/homem-forte-frasco.jpg";
 import medico from "@/assets/homem-forte-medico.jpg.asset.json";
+import ingGinseng from "@/assets/ing-ginseng.jpg";
+import ingBatata from "@/assets/ing-batata.jpg";
+import ingMaca from "@/assets/ing-maca.jpg";
 import { Reveal } from "@/components/Reveal";
 import { usePastHero } from "@/hooks/use-reveal";
 import {
@@ -13,6 +16,7 @@ import {
 } from "@/components/ui/accordion";
 
 const PRECO_UNITARIO = 10000;
+const WHATSAPP_NUMERO = "244937876711";
 
 const kz = (valor: number) => `${valor.toLocaleString("pt-AO").replace(/,/g, ".")} Kz`;
 
@@ -78,7 +82,7 @@ function Header() {
           ))}
           <a
             href="#pedido"
-            className="border border-gold px-5 py-2 text-xs font-semibold tracking-[0.18em] text-gold transition-colors hover:bg-gold hover:text-primary-foreground"
+            className="border border-gold px-5 py-2 text-xs font-semibold tracking-[0.18em] text-gold transition-colors hover:bg-gold hover:text-primary-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
           >
             FAZER PEDIDO
           </a>
@@ -123,7 +127,7 @@ function Header() {
               <a
                 href="#pedido"
                 onClick={() => setAberto(false)}
-                className="mt-4 block bg-gold px-5 py-3 text-center text-xs font-bold tracking-[0.18em] text-primary-foreground"
+                className="cta-primary mt-4 block px-5 py-3 text-center text-xs font-bold tracking-[0.18em]"
               >
                 FAZER PEDIDO
               </a>
@@ -139,7 +143,14 @@ function Header() {
 /* Formulário de pedido                                                */
 /* ------------------------------------------------------------------ */
 
-type Erros = Partial<Record<"nome" | "telefone" | "endereco" | "dia" | "hora", string>>;
+type Campo = "nome" | "telefone" | "endereco" | "dia" | "janela";
+type Erros = Partial<Record<Campo, string>>;
+
+const JANELAS_ENTREGA = [
+  { id: "manha", label: "Manhã", faixa: "8h – 12h" },
+  { id: "tarde", label: "Tarde", faixa: "12h – 17h" },
+  { id: "noite", label: "Noite", faixa: "17h – 20h" },
+] as const;
 
 function mascaraTelefone(valor: string) {
   const digitos = valor.replace(/\D/g, "").slice(0, 9);
@@ -148,36 +159,91 @@ function mascaraTelefone(valor: string) {
   );
 }
 
+function validarCampo(campo: Campo, valores: {
+  nome: string;
+  telefone: string;
+  endereco: string;
+  dia: string;
+  janela: string;
+}): string | undefined {
+  switch (campo) {
+    case "nome":
+      return valores.nome.trim().length < 3 ? "Indique o seu nome completo." : undefined;
+    case "telefone":
+      return valores.telefone.replace(/\D/g, "").length !== 9
+        ? "Indique um telefone válido com 9 dígitos."
+        : undefined;
+    case "endereco":
+      return valores.endereco.trim().length < 5 ? "Indique o endereço de entrega." : undefined;
+    case "dia":
+      return !valores.dia ? "Escolha o dia da entrega." : undefined;
+    case "janela":
+      return !valores.janela ? "Escolha um período de entrega." : undefined;
+  }
+}
+
 function FormularioPedido() {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [endereco, setEndereco] = useState("");
   const [dia, setDia] = useState("");
-  const [hora, setHora] = useState("");
+  const [janela, setJanela] = useState("");
   const [quantidade, setQuantidade] = useState(1);
   const [erros, setErros] = useState<Erros>({});
+  const [tocados, setTocados] = useState<Partial<Record<Campo, boolean>>>({});
   const [enviado, setEnviado] = useState(false);
 
   const total = useMemo(() => PRECO_UNITARIO * quantidade, [quantidade]);
+  const valores = { nome, telefone, endereco, dia, janela };
 
-  function validar(): Erros {
+  function onBlurCampo(campo: Campo) {
+    setTocados((t) => ({ ...t, [campo]: true }));
+    const msg = validarCampo(campo, valores);
+    setErros((e) => {
+      if (!msg) {
+        const resto = { ...e };
+        delete resto[campo];
+        return resto;
+      }
+      return { ...e, [campo]: msg };
+    });
+  }
+
+  function validarTudo(): Erros {
+    const campos: Campo[] = ["nome", "telefone", "endereco", "dia", "janela"];
     const e: Erros = {};
-    if (nome.trim().length < 3) e.nome = "Indique o seu nome completo.";
-    if (telefone.replace(/\D/g, "").length !== 9)
-      e.telefone = "Indique um telefone válido com 9 dígitos.";
-    if (endereco.trim().length < 5) e.endereco = "Indique o endereço de entrega.";
-    if (!dia) e.dia = "Escolha o dia da entrega.";
-    if (!hora) e.hora = "Escolha a hora da entrega.";
+    for (const c of campos) {
+      const msg = validarCampo(c, valores);
+      if (msg) e[c] = msg;
+    }
     return e;
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const e = validar();
+    const e = validarTudo();
     setErros(e);
+    setTocados({ nome: true, telefone: true, endereco: true, dia: true, janela: true });
     if (Object.keys(e).length > 0) return;
 
-    // Configure aqui o destino do pedido (ex.: envio para o seu endpoint ou WhatsApp).
+    const janelaLabel = JANELAS_ENTREGA.find((j) => j.id === janela);
+    const mensagem = [
+      "Novo pedido — HOMEM FORTE",
+      `Nome: ${nome.trim()}`,
+      `Telefone: ${telefone}`,
+      `Endereço: ${endereco.trim()}`,
+      `Dia da entrega: ${dia}`,
+      `Período: ${janelaLabel ? `${janelaLabel.label} (${janelaLabel.faixa})` : ""}`,
+      `Quantidade: ${quantidade}`,
+      `Total: ${kz(total)}`,
+      "Pagamento: somente na entrega",
+    ].join("\n");
+
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensagem)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
     setEnviado(true);
   }
 
@@ -189,13 +255,22 @@ function FormularioPedido() {
             <path d="M20 6 9 17l-5-5" />
           </svg>
         </div>
-        <h3 className="mt-6 font-display text-2xl tracking-wide">Pedido recebido.</h3>
+        <h3 className="mt-6 font-display text-2xl tracking-wide">Pedido pronto para envio.</h3>
         <p className="mt-3 text-sm text-muted-foreground">
-          Os dados foram enviados para organização da entrega.
+          Abrimos o WhatsApp com os seus dados preenchidos — basta confirmar o envio por lá para
+          organizarmos a entrega.
         </p>
         <p className="mt-6 text-xs tracking-[0.18em] text-gold">
           TOTAL: {kz(total)} · PAGAMENTO NA ENTREGA
         </p>
+        <a
+          href={`https://wa.me/${WHATSAPP_NUMERO}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 inline-block text-xs tracking-[0.14em] text-muted-foreground underline underline-offset-4 hover:text-gold"
+        >
+          Não abriu automaticamente? Toque aqui.
+        </a>
       </div>
     );
   }
@@ -217,11 +292,12 @@ function FormularioPedido() {
             autoComplete="name"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            aria-invalid={!!erros.nome}
+            onBlur={() => onBlurCampo("nome")}
+            aria-invalid={!!erros.nome && tocados.nome}
             className={campo}
             placeholder="O seu nome"
           />
-          {erros.nome && <p className="mt-2 text-xs text-destructive">{erros.nome}</p>}
+          {erros.nome && tocados.nome && <p className="mt-2 text-xs text-destructive">{erros.nome}</p>}
         </div>
 
         <div>
@@ -235,11 +311,14 @@ function FormularioPedido() {
             autoComplete="tel"
             value={telefone}
             onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
-            aria-invalid={!!erros.telefone}
+            onBlur={() => onBlurCampo("telefone")}
+            aria-invalid={!!erros.telefone && tocados.telefone}
             className={campo}
             placeholder="923 000 000"
           />
-          {erros.telefone && <p className="mt-2 text-xs text-destructive">{erros.telefone}</p>}
+          {erros.telefone && tocados.telefone && (
+            <p className="mt-2 text-xs text-destructive">{erros.telefone}</p>
+          )}
         </div>
 
         <div>
@@ -288,11 +367,14 @@ function FormularioPedido() {
             rows={2}
             value={endereco}
             onChange={(e) => setEndereco(e.target.value)}
-            aria-invalid={!!erros.endereco}
+            onBlur={() => onBlurCampo("endereco")}
+            aria-invalid={!!erros.endereco && tocados.endereco}
             className={campo}
             placeholder="Bairro, rua, referência"
           />
-          {erros.endereco && <p className="mt-2 text-xs text-destructive">{erros.endereco}</p>}
+          {erros.endereco && tocados.endereco && (
+            <p className="mt-2 text-xs text-destructive">{erros.endereco}</p>
+          )}
         </div>
 
         <div>
@@ -305,26 +387,42 @@ function FormularioPedido() {
             type="date"
             value={dia}
             onChange={(e) => setDia(e.target.value)}
-            aria-invalid={!!erros.dia}
+            onBlur={() => onBlurCampo("dia")}
+            aria-invalid={!!erros.dia && tocados.dia}
             className={campo}
           />
-          {erros.dia && <p className="mt-2 text-xs text-destructive">{erros.dia}</p>}
+          {erros.dia && tocados.dia && <p className="mt-2 text-xs text-destructive">{erros.dia}</p>}
         </div>
 
         <div>
-          <label htmlFor="hora" className={rotulo}>
-            HORA DA ENTREGA
-          </label>
-          <input
-            id="hora"
-            name="hora"
-            type="time"
-            value={hora}
-            onChange={(e) => setHora(e.target.value)}
-            aria-invalid={!!erros.hora}
-            className={campo}
-          />
-          {erros.hora && <p className="mt-2 text-xs text-destructive">{erros.hora}</p>}
+          <span className={rotulo}>PERÍODO DE ENTREGA</span>
+          <div className="grid grid-cols-3 gap-2" role="group" aria-label="Período de entrega">
+            {JANELAS_ENTREGA.map((j) => (
+              <button
+                key={j.id}
+                type="button"
+                onClick={() => {
+                  setJanela(j.id);
+                  setErros((e) => {
+                    const { janela: _omit, ...resto } = e;
+                    return resto;
+                  });
+                }}
+                aria-pressed={janela === j.id}
+                className={`border px-2 py-3 text-center text-xs transition-colors ${
+                  janela === j.id
+                    ? "border-gold bg-gold/10 text-gold"
+                    : "border-input text-muted-foreground hover:border-gold/50 hover:text-foreground"
+                }`}
+              >
+                <span className="block font-semibold tracking-wide">{j.label}</span>
+                <span className="mt-0.5 block text-[0.65rem] opacity-80">{j.faixa}</span>
+              </button>
+            ))}
+          </div>
+          {erros.janela && tocados.janela && (
+            <p className="mt-2 text-xs text-destructive">{erros.janela}</p>
+          )}
         </div>
       </div>
 
@@ -347,7 +445,7 @@ function FormularioPedido() {
 
       <button
         type="submit"
-        className="mt-8 w-full bg-gold py-4 font-display text-sm tracking-[0.2em] text-primary-foreground transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-gold)]"
+        className="cta-primary mt-8 w-full py-4 font-display text-sm tracking-[0.2em]"
       >
         SOLICITAR PEDIDO
       </button>
@@ -382,6 +480,12 @@ function HomemForte() {
     ["Pagamento", "Somente na entrega"],
     ["Utilização", "2 tampas pela manhã + 2 tampas à noite"],
     ["Conservação", "Refrigerado / geleira na maior parte do tempo"],
+  ];
+
+  const ingredientes = [
+    { nome: "GINSENG", imagem: ingGinseng },
+    { nome: "BATATA AFRICANA", imagem: ingBatata },
+    { nome: "MACA PERUANA", imagem: ingMaca },
   ];
 
   const faq = [
@@ -445,17 +549,35 @@ function HomemForte() {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a
                   href="#pedido"
-                  className="bg-gold px-8 py-4 text-center font-display text-sm tracking-[0.2em] text-primary-foreground transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-gold)]"
+                  className="cta-primary group inline-flex items-center justify-center gap-2 px-8 py-4 text-center font-display text-sm tracking-[0.2em]"
                 >
                   QUERO O HOMEM FORTE
+                  <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">
+                    →
+                  </span>
                 </a>
                 <a
                   href="#produto"
-                  className="border border-border px-8 py-4 text-center font-display text-sm tracking-[0.2em] text-foreground transition-colors hover:border-gold hover:text-gold"
+                  className="border border-border px-8 py-4 text-center font-display text-sm tracking-[0.2em] text-foreground transition-colors hover:border-gold hover:text-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                 >
                   VER DETALHES
                 </a>
               </div>
+
+              <a
+                href={`https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(
+                  "Olá! Quero encomendar o HOMEM FORTE (500 ml, 10.000 Kz).",
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex items-center gap-2 text-xs tracking-[0.14em] text-muted-foreground transition-colors hover:text-gold"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="currentColor">
+                  <path d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.6-1.9-.1-.3 0-.4.1-.5l.4-.5c.1-.1.2-.3.2-.4.1-.1 0-.3 0-.4-.1-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.3-.8.8-.8 1.9s.8 2.2.9 2.4c.1.2 1.6 2.4 3.8 3.4.5.2.9.4 1.3.5.5.2 1 .1 1.4.1.4-.1 1.3-.5 1.5-1 .2-.5.2-.9.1-1z" />
+                  <path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.1 8.1 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z" />
+                </svg>
+                Prefere pedir direto no WhatsApp?
+              </a>
             </div>
 
             <div className="relative">
@@ -466,6 +588,8 @@ function HomemForte() {
                 alt="Frasco de 500 ml do suplemento HOMEM FORTE sobre mesa de madeira"
                 width={828}
                 height={1148}
+                loading="eager"
+                fetchPriority="high"
                 className="relative mx-auto w-full max-w-md border border-border object-cover shadow-[var(--shadow-premium)]"
               />
             </div>
@@ -522,16 +646,29 @@ function HomemForte() {
             </Reveal>
 
             <div className="mt-12 grid gap-6 sm:grid-cols-3">
-              {["GINSENG", "BATATA AFRICANA", "MACA PERUANA"].map((ing, i) => (
-                <Reveal key={ing}>
-                  <article className="h-full border border-border bg-surface p-8 transition-transform duration-300 hover:-translate-y-1 hover:border-gold/50">
-                    <span className="font-display text-xs tracking-[0.3em] text-muted-foreground">
-                      0{i + 1}
-                    </span>
-                    <h3 className="mt-4 font-display text-2xl tracking-wide text-foreground">
-                      {ing}
-                    </h3>
-                    <div className="hairline mt-6 w-16" />
+              {ingredientes.map((ing, i) => (
+                <Reveal key={ing.nome}>
+                  <article className="group h-full overflow-hidden border border-border bg-surface transition-transform duration-300 hover:-translate-y-1 hover:border-gold/50">
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      <img
+                        src={ing.imagem}
+                        alt={`${ing.nome} — ingrediente da fórmula HOMEM FORTE`}
+                        loading="lazy"
+                        width={1024}
+                        height={1024}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
+                      <span className="absolute left-4 top-4 font-display text-xs tracking-[0.3em] text-gold">
+                        0{i + 1}
+                      </span>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="font-display text-xl tracking-wide text-foreground">
+                        {ing.nome}
+                      </h3>
+                      <div className="hairline mt-4 w-12" />
+                    </div>
                   </article>
                 </Reveal>
               ))}
@@ -621,9 +758,12 @@ function HomemForte() {
               </p>
               <a
                 href="#pedido"
-                className="mt-10 inline-block bg-gold px-12 py-4 font-display text-sm tracking-[0.2em] text-primary-foreground transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-gold)]"
+                className="cta-primary group mt-10 inline-flex items-center gap-2 px-12 py-4 font-display text-sm tracking-[0.2em]"
               >
                 QUERO RECEBER
+                <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">
+                  →
+                </span>
               </a>
               <p className="mt-4 text-xs text-muted-foreground">Sem pagamento antecipado.</p>
             </Reveal>
@@ -704,9 +844,12 @@ function HomemForte() {
               <p className="mt-8 font-display text-5xl tracking-tight text-gold">10.000 Kz</p>
               <a
                 href="#pedido"
-                className="mt-10 inline-block bg-gold px-12 py-4 font-display text-sm tracking-[0.2em] text-primary-foreground transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-gold)]"
+                className="cta-primary group mt-10 inline-flex items-center gap-2 px-12 py-4 font-display text-sm tracking-[0.2em]"
               >
                 QUERO O HOMEM FORTE
+                <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">
+                  →
+                </span>
               </a>
             </Reveal>
           </div>
@@ -748,7 +891,7 @@ function HomemForte() {
       >
         <a
           href="#pedido"
-          className="block bg-gold py-4 text-center font-display text-sm tracking-[0.15em] text-primary-foreground"
+          className="cta-primary block py-4 text-center font-display text-sm tracking-[0.15em]"
         >
           QUERO O HOMEM FORTE — 10.000 Kz
         </a>
