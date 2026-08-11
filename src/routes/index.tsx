@@ -458,16 +458,27 @@ function HomemForte() {
 
       <main>
         {/* SEÇÃO 1 — HERO EM VÍDEO */}
-        <section id="inicio" className="relative min-h-[92vh] overflow-hidden">
-          <video
-            className="absolute inset-0 h-full w-full object-cover"
-            src="/hero-video.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            aria-hidden="true"
-          />
+        <section id="inicio" className="relative min-h-[92vh] overflow-hidden bg-black">
+          <div className="absolute inset-0 overflow-hidden">
+            <video
+              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
+              src="/hero-video.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-hidden="true"
+            />
+            <video
+              className="absolute inset-0 h-full w-full object-contain"
+              src="/hero-video.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-hidden="true"
+            />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/75 to-background/40" />
           <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent" />
 
