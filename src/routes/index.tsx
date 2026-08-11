@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import frasco from "@/assets/homem-forte-frasco.jpg";
 import prodHero from "@/assets/prod-frasco-hero.jpg";
@@ -19,6 +19,11 @@ import {
 const PRECO_UNITARIO = 10000;
 const PRECO_ENTREGA = 1000;
 const WHATSAPP = "244937876711";
+
+const CONTATOS = [
+  { rede: "UNITEL", numero: "937 876 711", tel: "tel:+244937876711" },
+  { rede: "AFRICELL", numero: "958 614 517", tel: "tel:+244958614517" },
+] as const;
 const PIXEL_ID = "1032782669666254";
 
 const PIXEL_SCRIPT = `!function(f,b,e,v,n,t,s)
@@ -294,42 +299,7 @@ function FormularioPedido() {
     ir(4);
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const e = validar(5);
-    setErros(e);
-    if (Object.keys(e).length > 0) {
-      if (e.nome || e.telefone || e.endereco || e.provincia) ir(4);
-      else if (e.zona) ir(3);
-      else if (e.periodo) ir(2);
-      else ir(1);
-      return;
-    }
-
-    const msg = [
-      "Olá! Quero fazer um pedido do HOMEM FORTE 500 ML.",
-      "",
-      "*Pedido*",
-      "Produto: HOMEM FORTE 500 ML",
-      `Quantidade: ${quantidade}`,
-      `Produto: ${kz(totalProduto)}`,
-      `Entrega: ${kz(PRECO_ENTREGA)}`,
-      `Total: ${kz(total)}`,
-      "",
-      "*Entrega*",
-      `Data: ${rotuloDia(dia)}`,
-      `Período: ${periodo}`,
-      `Local: ${zona === "luanda" ? "Luanda" : `Outra província — ${provincia}`}`,
-      "",
-      "*Cliente*",
-      `Nome: ${nome}`,
-      `Telefone: ${telefone}`,
-      `Endereço: ${endereco}`,
-      zona === "luanda"
-        ? "Pagamento: na entrega"
-        : "Pagamento: antecipado (envio imediato após confirmação)",
-    ].join("\n");
-
+  function dispararLigacao() {
     if (Date.now() - ultimoClique.current > 2500) {
       ultimoClique.current = Date.now();
       fbq("track", "InitiateCheckout", {
@@ -340,7 +310,6 @@ function FormularioPedido() {
         currency: "AOA",
         num_items: quantidade,
       });
-      window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
     }
   }
 
@@ -355,7 +324,7 @@ function FormularioPedido() {
     }`;
 
   return (
-    <form onSubmit={onSubmit} noValidate className="border border-border bg-surface p-6 md:p-10">
+    <form noValidate className="border border-border bg-surface p-6 md:p-10">
       <div className="mb-8">
         <div className="flex items-baseline justify-between gap-4">
           <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground">
@@ -708,22 +677,27 @@ function FormularioPedido() {
               </div>
             </div>
 
-            <div className="mt-8 grid gap-3">
-              <button
-                type="submit"
-                className="btn-green w-full py-4 font-display text-sm tracking-[0.2em]"
-              >
-                🔥 FAZER MEU PEDIDO NO WHATSAPP
-              </button>
-              <a
-                href={`tel:+${WHATSAPP}`}
-                className="block w-full border border-green/50 bg-background py-4 text-center font-display text-sm tracking-[0.2em] text-green transition-colors hover:bg-green/10"
-              >
-                📞 LIGAR AGORA
-              </a>
+            <div className="mt-8 overflow-hidden">
+              <div className="grid grid-cols-2">
+                {CONTATOS.map((c, i) => (
+                  <a
+                    key={c.rede}
+                    href={c.tel}
+                    onClick={dispararLigacao}
+                    className={`btn-green flex flex-col items-center gap-1 px-2 py-4 text-center ${
+                      i > 0 ? "border-l border-background/25" : ""
+                    }`}
+                  >
+                    <span className="font-display text-sm font-bold tracking-[0.2em]">
+                      {c.rede}
+                    </span>
+                    <span className="text-xs tracking-[0.15em] opacity-70">{c.numero}</span>
+                  </a>
+                ))}
+              </div>
             </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              O pedido abre no WhatsApp já preenchido — revê tudo e toca em Enviar.
+              Toque na sua rede (Unitel ou Africell) e ligue — fazemos o pedido por telefone.
             </p>
             <button
               type="button"
@@ -1046,7 +1020,7 @@ function HomemForte() {
                 FAZER O PEDIDO EM 30 SEGUNDOS
               </h2>
               <p className="mt-4 text-sm text-muted-foreground">
-                5 perguntas rápidas e o pedido abre directamente no nosso WhatsApp, já preenchido.
+                5 perguntas rápidas e ligue directamente para a sua rede — Unitel ou Africell.
               </p>
             </Reveal>
             <div className="mt-10">
