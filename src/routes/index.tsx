@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import frasco from "@/assets/homem-forte-frasco.jpg.asset.json";
 import heroVideo from "@/assets/hero-video.mp4.asset.json";
 import prodHero from "@/assets/prod-frasco-hero.jpg";
+import medico from "@/assets/homem-forte-medico.jpg";
 import ingrGinseng from "@/assets/ingr-ginseng.jpg";
 import ingrBeterraba from "@/assets/ingr-beterraba.jpg";
 import ingrMaca from "@/assets/ingr-maca.jpg";
@@ -511,11 +512,11 @@ function HomemForte() {
           <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:px-8 md:py-28 lg:grid-cols-2 lg:items-center">
             <Reveal>
               <img
-                src={prodHero}
-                alt="Frasco de 500 ml do HOMEM FORTE em fundo escuro com iluminação dourada"
+                src={medico}
+                alt="Profissional responsável pela orientação do HOMEM FORTE"
                 loading="lazy"
-                width={1024}
-                height={1280}
+                width={1149}
+                height={1369}
                 className="w-full border border-border object-cover shadow-[var(--shadow-premium)]"
               />
             </Reveal>
