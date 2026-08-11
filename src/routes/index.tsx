@@ -598,12 +598,10 @@ function FormularioPedido() {
 
             <div className="mt-6 border-t border-border">
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4">
-                <div className="min-w-0">
-                  <p className="break-words font-display tracking-widest text-foreground">
-                    HOMEM FORTE 500 ML
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">Quantidade</p>
-                </div>
+                <p className="min-w-0 font-display tracking-widest text-foreground">
+                  <span className="whitespace-nowrap">HOMEM FORTE</span>{" "}
+                  <span className="whitespace-nowrap">500 ML</span>
+                </p>
                 <div className="flex shrink-0 items-center border border-input bg-background">
                   <button
                     type="button"
@@ -637,22 +635,26 @@ function FormularioPedido() {
               </div>
 
               <dl className="space-y-2 border-t border-border pt-4 text-sm">
-                <div className="flex items-baseline justify-between gap-3">
-                  <dt className="shrink-0 text-muted-foreground">
-                    Produto · {quantidade} {quantidade === 1 ? "frasco" : "frascos"}
-                  </dt>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <dt className="text-muted-foreground">Quantidade</dt>
+                  <dd className="whitespace-nowrap font-semibold text-foreground">
+                    {quantidade} {quantidade === 1 ? "frasco" : "frascos"}
+                  </dd>
+                </div>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <dt className="text-muted-foreground">Produto</dt>
                   <dd className="whitespace-nowrap font-semibold text-foreground">
                     {kz(totalProduto)}
                   </dd>
                 </div>
-                <div className="flex items-baseline justify-between gap-3">
-                  <dt className="shrink-0 text-muted-foreground">Entrega</dt>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <dt className="text-muted-foreground">Entrega</dt>
                   <dd className="whitespace-nowrap font-semibold text-foreground">
                     {kz(PRECO_ENTREGA)}
                   </dd>
                 </div>
-                <div className="flex items-baseline justify-between gap-3 border-t border-border pt-3">
-                  <dt className="shrink-0 text-xs font-semibold tracking-[0.18em] text-muted-foreground">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-border pt-3">
+                  <dt className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
                     TOTAL
                   </dt>
                   <dd className="whitespace-nowrap font-display text-2xl text-gold">
