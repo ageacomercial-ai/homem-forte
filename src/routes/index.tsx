@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
 
-import frasco from "@/assets/homem-forte-frasco.jpg.asset.json";
+import frasco from "@/assets/homem-forte-frasco.jpg";
 import heroVideo from "@/assets/hero-video.mp4.asset.json";
 import prodHero from "@/assets/prod-frasco-hero.jpg";
 import medico from "@/assets/homem-forte-medico.jpg";
@@ -567,11 +567,11 @@ function HomemForte() {
             <div className="mt-14 grid gap-10 lg:grid-cols-2 lg:items-center">
               <Reveal>
                 <img
-                  src={frasco.url}
+                  src={frasco}
                   alt="Frasco original do suplemento HOMEM FORTE de 500 ml"
                   loading="lazy"
                   width={828}
-                  height={1148}
+                  height={1153}
                   className="w-full border border-border object-cover shadow-[var(--shadow-premium)]"
                 />
               </Reveal>
