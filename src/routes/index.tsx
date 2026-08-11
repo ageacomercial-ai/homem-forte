@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
 
 import frasco from "@/assets/homem-forte-frasco.jpg";
-import heroVideo from "@/assets/hero-video.mp4.asset.json";
 import prodHero from "@/assets/prod-frasco-hero.jpg";
 import medico from "@/assets/homem-forte-medico.jpg";
 import ingrGinseng from "@/assets/ingr-ginseng.jpg";
@@ -462,7 +461,7 @@ function HomemForte() {
         <section id="inicio" className="relative min-h-[92vh] overflow-hidden">
           <video
             className="absolute inset-0 h-full w-full object-cover"
-            src={heroVideo.url}
+            src="/hero-video.mp4"
             autoPlay
             muted
             loop
