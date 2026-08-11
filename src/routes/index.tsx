@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import frasco from "@/assets/homem-forte-frasco.jpg";
 import prodHero from "@/assets/prod-frasco-hero.jpg";
@@ -18,6 +18,22 @@ import {
 
 const PRECO_UNITARIO = 10000;
 const WHATSAPP = "244937876711";
+const PIXEL_ID = "1032782669666254";
+
+const PIXEL_SCRIPT = `!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${PIXEL_ID}');
+fbq('track', 'PageView');`;
+
+function fbq(...args: unknown[]) {
+  (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq?.(...args);
+}
 
 const kz = (valor: number) => `${valor.toLocaleString("pt-AO").replace(/,/g, ".")} Kz`;
 
@@ -47,6 +63,7 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [{ rel: "canonical", href: "/" }],
+    scripts: [{ children: PIXEL_SCRIPT }],
   }),
 });
 
@@ -147,10 +164,36 @@ function Header() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Formulário de pedido → WhatsApp                                      */
+/* Formulário de pedido progressivo → WhatsApp                          */
 /* ------------------------------------------------------------------ */
 
-type Erros = Partial<Record<"nome" | "telefone" | "endereco" | "dia", string>>;
+type Erros = Partial<
+  Record<"dia" | "periodo" | "zona" | "nome" | "telefone" | "endereco" | "provincia", string>
+>;
+
+const PERIODOS = ["O mais cedo possível", "Manhã", "Tarde", "Noite"] as const;
+
+const PROVINCIAS = [
+  "Bengo",
+  "Benguela",
+  "Bié",
+  "Cabinda",
+  "Cuando Cubango",
+  "Cuanza Norte",
+  "Cuanza Sul",
+  "Cunene",
+  "Huambo",
+  "Huíla",
+  "Lunda Norte",
+  "Lunda Sul",
+  "Malanje",
+  "Moxico",
+  "Namibe",
+  "Uíge",
+  "Zaire",
+] as const;
+
+const ETAPAS_LABEL = ["QUANDO", "PERÍODO", "LOCAL", "DADOS", "RESUMO"] as const;
 
 function mascaraTelefone(valor: string) {
   const digitos = valor.replace(/\D/g, "").slice(0, 9);
@@ -159,233 +202,502 @@ function mascaraTelefone(valor: string) {
   );
 }
 
+const amanhaISO = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+};
+
+const rotuloDia = (iso: string) => {
+  if (!iso) return "";
+  if (iso === hojeISO()) return "Hoje";
+  if (iso === amanhaISO()) return "Amanhã";
+  const [a, m, d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+};
+
 function FormularioPedido() {
+  const [etapa, setEtapa] = useState(1);
+  const [dia, setDia] = useState("");
+  const [periodo, setPeriodo] = useState("");
+  const [zona, setZona] = useState<"" | "luanda" | "provincia">("");
+  const [provincia, setProvincia] = useState("");
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [endereco, setEndereco] = useState("");
-  const [zona, setZona] = useState<"luanda" | "provincia">("luanda");
-  const [dia, setDia] = useState(hojeISO());
-  const [periodo, setPeriodo] = useState("Hoje — o mais cedo possível");
   const [quantidade, setQuantidade] = useState(1);
   const [erros, setErros] = useState<Erros>({});
+  const [mostrarCalendario, setMostrarCalendario] = useState(false);
+  const painelRef = useRef<HTMLDivElement>(null);
+  const ultimoClique = useRef(0);
 
   const total = useMemo(() => PRECO_UNITARIO * quantidade, [quantidade]);
 
-  function validar(): Erros {
+  function ir(proxima: number) {
+    setEtapa(proxima);
+    painelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function limparErros(chave: keyof Erros) {
+    setErros((e) => ({ ...e, [chave]: undefined }));
+  }
+
+  function validar(atual: number): Erros {
     const e: Erros = {};
-    if (nome.trim().length < 3) e.nome = "Indique o seu nome.";
-    if (telefone.replace(/\D/g, "").length !== 9)
-      e.telefone = "Telefone com 9 dígitos.";
-    if (endereco.trim().length < 4) e.endereco = "Indique onde entregar.";
-    if (!dia) e.dia = "Escolha o dia.";
+    if (atual <= 1 && !dia) e.dia = "Escolha uma data.";
+    if (atual >= 2 && !periodo) e.periodo = "Escolha um período.";
+    if (atual >= 3 && !zona) e.zona = "Escolha a localização.";
+    if (atual >= 4) {
+      if (nome.trim().length < 3) e.nome = "Informe o seu nome.";
+      const digitos = telefone.replace(/\D/g, "");
+      if (!digitos) e.telefone = "Informe o seu número de telefone.";
+      else if (digitos.length !== 9) e.telefone = "Telefone com 9 dígitos.";
+      if (endereco.trim().length < 4) e.endereco = "Informe onde devemos entregar.";
+      if (zona === "provincia" && !provincia) e.provincia = "Selecione a província.";
+    }
     return e;
+  }
+
+  function continuar() {
+    const e = validar(etapa);
+    setErros(e);
+    if (Object.keys(e).length > 0) return;
+    setErros({});
+    ir(etapa + 1);
+  }
+
+  function voltar() {
+    setErros({});
+    ir(etapa - 1);
+  }
+
+  function escolherDia(valor: string) {
+    setDia(valor);
+    limparErros("dia");
+    ir(2);
+  }
+
+  function escolherPeriodo(valor: string) {
+    setPeriodo(valor);
+    limparErros("periodo");
+    ir(3);
+  }
+
+  function escolherZona(valor: "luanda" | "provincia") {
+    setZona(valor);
+    if (zona !== valor) setProvincia("");
+    limparErros("zona");
+    ir(4);
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const e = validar();
+    const e = validar(5);
     setErros(e);
-    if (Object.keys(e).length > 0) return;
+    if (Object.keys(e).length > 0) {
+      if (e.nome || e.telefone || e.endereco || e.provincia) ir(4);
+      else if (e.zona) ir(3);
+      else if (e.periodo) ir(2);
+      else ir(1);
+      return;
+    }
 
     const msg = [
-      "*NOVO PEDIDO — HOMEM FORTE 500 ml*",
-      `Nome: ${nome}`,
-      `Telefone: ${telefone}`,
-      `Local: ${zona === "luanda" ? "Luanda" : "Fora de Luanda (província)"}`,
-      `Endereço: ${endereco}`,
-      `Entrega: ${dia} · ${periodo}`,
+      "Olá! Quero fazer um pedido do HOMEM FORTE 500 ML.",
+      "",
+      "*Pedido*",
+      "Produto: HOMEM FORTE 500 ML",
       `Quantidade: ${quantidade}`,
       `Total: ${kz(total)}`,
+      "",
+      "*Entrega*",
+      `Data: ${rotuloDia(dia)}`,
+      `Período: ${periodo}`,
+      `Local: ${zona === "luanda" ? "Luanda" : `Outra província — ${provincia}`}`,
+      "",
+      "*Cliente*",
+      `Nome: ${nome}`,
+      `Telefone: ${telefone}`,
+      `Endereço: ${endereco}`,
       zona === "luanda"
         ? "Pagamento: na entrega"
         : "Pagamento: antecipado (envio imediato após confirmação)",
     ].join("\n");
 
-    window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
+    if (Date.now() - ultimoClique.current > 2500) {
+      ultimoClique.current = Date.now();
+      fbq("track", "InitiateCheckout", {
+        content_name: "HOMEM FORTE 500 ml",
+        content_ids: ["HF-500"],
+        content_type: "product",
+        value: total,
+        currency: "AOA",
+        num_items: quantidade,
+      });
+      window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
+    }
   }
 
   const campo =
     "w-full border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-green focus:outline-none";
   const rotulo = "mb-2 block text-xs font-semibold tracking-[0.16em] text-muted-foreground";
+  const opcao = (ativa: boolean) =>
+    `w-full border px-5 py-4 text-left font-display text-sm tracking-[0.14em] transition-colors ${
+      ativa
+        ? "border-green bg-green/10 text-foreground"
+        : "border-input text-muted-foreground hover:border-green/50 hover:text-foreground"
+    }`;
 
   return (
     <form onSubmit={onSubmit} noValidate className="border border-border bg-surface p-6 md:p-10">
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="md:col-span-2">
-          <label htmlFor="nome" className={rotulo}>
-            NOME
-          </label>
-          <input
-            id="nome"
-            name="nome"
-            autoComplete="name"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            aria-invalid={!!erros.nome}
-            className={campo}
-            placeholder="O seu nome"
-          />
-          {erros.nome && <p className="mt-2 text-xs text-destructive">{erros.nome}</p>}
+      <div className="mb-8">
+        <div className="flex items-baseline justify-between gap-4">
+          <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground">
+            {etapa} de 5
+          </p>
+          <p className="font-display text-xs tracking-[0.18em] text-gold">
+            {ETAPAS_LABEL[etapa - 1]}
+          </p>
         </div>
-
-        <div>
-          <label htmlFor="telefone" className={rotulo}>
-            TELEFONE (WHATSAPP)
-          </label>
-          <input
-            id="telefone"
-            name="telefone"
-            inputMode="tel"
-            autoComplete="tel"
-            value={telefone}
-            onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
-            aria-invalid={!!erros.telefone}
-            className={campo}
-            placeholder="923 000 000"
+        <div className="mt-3 h-1 w-full overflow-hidden bg-border">
+          <div
+            className="h-full bg-green transition-all duration-300"
+            style={{ width: `${(etapa / 5) * 100}%` }}
           />
-          {erros.telefone && <p className="mt-2 text-xs text-destructive">{erros.telefone}</p>}
         </div>
-
-        <div>
-          <label htmlFor="quantidade" className={rotulo}>
-            QUANTIDADE
-          </label>
-          <div className="flex items-center border border-input bg-background">
-            <button
-              type="button"
-              aria-label="Diminuir quantidade"
-              onClick={() => setQuantidade((q) => Math.max(1, q - 1))}
-              className="px-4 py-3 text-lg text-muted-foreground transition-colors hover:text-green"
-            >
-              −
-            </button>
-            <input
-              id="quantidade"
-              name="quantidade"
-              type="number"
-              min={1}
-              max={99}
-              value={quantidade}
-              onChange={(e) =>
-                setQuantidade(Math.min(99, Math.max(1, Number(e.target.value) || 1)))
+        <p className="mt-3 hidden flex-wrap gap-x-4 gap-y-1 text-[10px] tracking-[0.12em] text-muted-foreground/60 sm:flex">
+          {ETAPAS_LABEL.map((et, i) => (
+            <span
+              key={et}
+              className={
+                i + 1 < etapa
+                  ? "text-green"
+                  : i + 1 === etapa
+                    ? "font-semibold text-gold"
+                    : undefined
               }
-              className="w-full bg-transparent py-3 text-center text-sm text-foreground focus:outline-none"
-            />
+            >
+              {i + 1}. {et}
+            </span>
+          ))}
+        </p>
+      </div>
+
+      <div ref={painelRef} className="scroll-mt-24">
+        {/* ETAPA 1 — QUANDO QUER RECEBER? */}
+        {etapa === 1 && (
+          <div>
+            <h3 className="font-display text-2xl tracking-tight text-foreground">
+              QUANDO QUER RECEBER?
+            </h3>
+            <div className="mt-6 grid gap-3">
+              <button type="button" onClick={() => escolherDia(hojeISO())} className={opcao(dia === hojeISO())}>
+                HOJE
+              </button>
+              <button type="button" onClick={() => escolherDia(amanhaISO())} className={opcao(dia === amanhaISO())}>
+                AMANHÃ
+              </button>
+              <button
+                type="button"
+                onClick={() => setMostrarCalendario(true)}
+                className={opcao(mostrarCalendario)}
+              >
+                OUTRA DATA
+              </button>
+            </div>
+            {mostrarCalendario && (
+              <div className="mt-5">
+                <label htmlFor="dia" className={rotulo}>
+                  ESCOLHA A DATA
+                </label>
+                <input
+                  id="dia"
+                  name="dia"
+                  type="date"
+                  value={dia}
+                  min={hojeISO()}
+                  onChange={(e) => {
+                    if (e.target.value) escolherDia(e.target.value);
+                  }}
+                  aria-invalid={!!erros.dia}
+                  className={campo}
+                />
+                {erros.dia && <p className="mt-2 text-xs text-destructive">{erros.dia}</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ETAPA 2 — QUAL PERÍODO PREFERE? */}
+        {etapa === 2 && (
+          <div>
+            <h3 className="font-display text-2xl tracking-tight text-foreground">
+              QUAL PERÍODO PREFERE?
+            </h3>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {PERIODOS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => escolherPeriodo(p)}
+                  className={opcao(periodo === p)}
+                >
+                  {p.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            {erros.periodo && <p className="mt-3 text-xs text-destructive">{erros.periodo}</p>}
+          </div>
+        )}
+
+        {/* ETAPA 3 — ONDE SERÁ A ENTREGA? */}
+        {etapa === 3 && (
+          <div>
+            <h3 className="font-display text-2xl tracking-tight text-foreground">
+              ONDE SERÁ A ENTREGA?
+            </h3>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => escolherZona("luanda")}
+                className={opcao(zona === "luanda")}
+              >
+                LUANDA
+              </button>
+              <button
+                type="button"
+                onClick={() => escolherZona("provincia")}
+                className={opcao(zona === "provincia")}
+              >
+                OUTRA PROVÍNCIA
+              </button>
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Em Luanda paga apenas quando receber. Fora de Luanda o pagamento é feito antes e
+              enviamos imediatamente.
+            </p>
+            {erros.zona && <p className="mt-3 text-xs text-destructive">{erros.zona}</p>}
+          </div>
+        )}
+
+        {/* ETAPA 4 — DADOS DO CLIENTE */}
+        {etapa === 4 && (
+          <div>
+            <h3 className="font-display text-2xl tracking-tight text-foreground">SEUS DADOS</h3>
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <div>
+                <label htmlFor="nome" className={rotulo}>
+                  NOME
+                </label>
+                <input
+                  id="nome"
+                  name="nome"
+                  autoComplete="name"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  aria-invalid={!!erros.nome}
+                  className={campo}
+                  placeholder="Digite seu nome"
+                />
+                {erros.nome && <p className="mt-2 text-xs text-destructive">{erros.nome}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="telefone" className={rotulo}>
+                  NÚMERO DE TELEFONE
+                </label>
+                <input
+                  id="telefone"
+                  name="telefone"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={telefone}
+                  onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
+                  aria-invalid={!!erros.telefone}
+                  className={campo}
+                  placeholder="Ex.: 923 000 000"
+                />
+                {erros.telefone && (
+                  <p className="mt-2 text-xs text-destructive">{erros.telefone}</p>
+                )}
+              </div>
+
+              {zona === "provincia" && (
+                <div>
+                  <label htmlFor="provincia" className={rotulo}>
+                    PROVÍNCIA
+                  </label>
+                  <select
+                    id="provincia"
+                    name="provincia"
+                    value={provincia}
+                    onChange={(e) => setProvincia(e.target.value)}
+                    aria-invalid={!!erros.provincia}
+                    className={campo}
+                  >
+                    <option value="">Selecione a província</option>
+                    {PROVINCIAS.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                  {erros.provincia && (
+                    <p className="mt-2 text-xs text-destructive">{erros.provincia}</p>
+                  )}
+                </div>
+              )}
+
+              <div className="md:col-span-2">
+                <label htmlFor="endereco" className={rotulo}>
+                  ENDEREÇO DE ENTREGA
+                </label>
+                <textarea
+                  id="endereco"
+                  name="endereco"
+                  rows={2}
+                  value={endereco}
+                  onChange={(e) => setEndereco(e.target.value)}
+                  aria-invalid={!!erros.endereco}
+                  className={campo}
+                  placeholder="Onde devemos entregar?"
+                />
+                {erros.endereco && (
+                  <p className="mt-2 text-xs text-destructive">{erros.endereco}</p>
+                )}
+              </div>
+            </div>
+
             <button
               type="button"
-              aria-label="Aumentar quantidade"
-              onClick={() => setQuantidade((q) => Math.min(99, q + 1))}
-              className="px-4 py-3 text-lg text-muted-foreground transition-colors hover:text-green"
+              onClick={continuar}
+              className="btn-green mt-8 w-full py-4 font-display text-sm tracking-[0.2em]"
             >
-              +
+              CONTINUAR
+            </button>
+            <button
+              type="button"
+              onClick={voltar}
+              className="mt-4 w-full text-xs tracking-[0.15em] text-muted-foreground underline-offset-4 hover:text-gold hover:underline"
+            >
+              ← VOLTAR
             </button>
           </div>
-        </div>
+        )}
 
-        <div className="md:col-span-2">
-          <span className={rotulo}>ONDE ESTÁ?</span>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(
-              [
-                ["luanda", "Luanda — pago na entrega"],
-                ["provincia", "Fora de Luanda — pago antes"],
-              ] as const
-            ).map(([valor, label]) => (
-              <button
-                key={valor}
-                type="button"
-                onClick={() => setZona(valor)}
-                aria-pressed={zona === valor}
-                className={`border px-4 py-3 text-left text-sm transition-colors ${
-                  zona === valor
-                    ? "border-green bg-green/10 text-foreground"
-                    : "border-input text-muted-foreground hover:border-green/50"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        {/* ETAPA 5 — RESUMO */}
+        {etapa === 5 && (
+          <div>
+            <h3 className="font-display text-2xl tracking-tight text-foreground">SEU PEDIDO</h3>
+
+            <div className="mt-6 border-t border-border">
+              <div className="flex items-center justify-between gap-4 py-4">
+                <div>
+                  <p className="font-display tracking-widest text-foreground">HOMEM FORTE 500 ML</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{kz(PRECO_UNITARIO)} cada</p>
+                </div>
+                <div className="flex shrink-0 items-center border border-input bg-background">
+                  <button
+                    type="button"
+                    aria-label="Diminuir quantidade"
+                    onClick={() => setQuantidade((q) => Math.max(1, q - 1))}
+                    className="px-4 py-3 text-lg text-muted-foreground transition-colors hover:text-green"
+                  >
+                    −
+                  </button>
+                  <input
+                    id="quantidade"
+                    name="quantidade"
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={quantidade}
+                    onChange={(e) =>
+                      setQuantidade(Math.min(99, Math.max(1, Number(e.target.value) || 1)))
+                    }
+                    className="w-14 bg-transparent py-3 text-center text-sm text-foreground focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Aumentar quantidade"
+                    onClick={() => setQuantidade((q) => Math.min(99, q + 1))}
+                    className="px-4 py-3 text-lg text-muted-foreground transition-colors hover:text-green"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-baseline justify-between border-t border-border pt-4">
+                <dt className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
+                  TOTAL
+                </dt>
+                <dd className="font-display text-3xl text-gold">
+                  {kz(total)} · {quantidade} {quantidade === 1 ? "frasc" : "frascos"}
+                </dd>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-6 sm:grid-cols-2">
+              <div className="border border-border bg-background p-5">
+                <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
+                  ENTREGA
+                </p>
+                <dl className="mt-3 space-y-2 text-sm text-foreground">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Data</dt>
+                    <dd>{rotuloDia(dia)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Período</dt>
+                    <dd>{periodo}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Local</dt>
+                    <dd className="text-right">
+                      {zona === "luanda" ? "Luanda" : `Outra província — ${provincia}`}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="border border-border bg-background p-5">
+                <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
+                  CLIENTE
+                </p>
+                <dl className="mt-3 space-y-2 text-sm text-foreground">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Nome</dt>
+                    <dd>{nome}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Telefone</dt>
+                    <dd>{telefone}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Endereço</dt>
+                    <dd className="text-right">{endereco}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            <button type="submit" className="btn-green mt-8 w-full py-4 font-display text-sm tracking-[0.2em]">
+              🔥 FAZER MEU PEDIDO NO WHATSAPP
+            </button>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              O pedido abre no WhatsApp já preenchido — revê tudo e toca em Enviar.
+            </p>
+            <button
+              type="button"
+              onClick={voltar}
+              className="mt-4 w-full text-xs tracking-[0.15em] text-muted-foreground underline-offset-4 hover:text-gold hover:underline"
+            >
+              ← VOLTAR
+            </button>
           </div>
-        </div>
-
-        <div className="md:col-span-2">
-          <label htmlFor="endereco" className={rotulo}>
-            ENDEREÇO DE ENTREGA
-          </label>
-          <textarea
-            id="endereco"
-            name="endereco"
-            rows={2}
-            value={endereco}
-            onChange={(e) => setEndereco(e.target.value)}
-            aria-invalid={!!erros.endereco}
-            className={campo}
-            placeholder="Bairro, rua, referência"
-          />
-          {erros.endereco && <p className="mt-2 text-xs text-destructive">{erros.endereco}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="dia" className={rotulo}>
-            DIA DA ENTREGA (HOJE)
-          </label>
-          <input
-            id="dia"
-            name="dia"
-            type="date"
-            value={dia}
-            min={hojeISO()}
-            onChange={(e) => setDia(e.target.value)}
-            aria-invalid={!!erros.dia}
-            className={campo}
-          />
-          {erros.dia && <p className="mt-2 text-xs text-destructive">{erros.dia}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="periodo" className={rotulo}>
-            PERÍODO
-          </label>
-          <select
-            id="periodo"
-            name="periodo"
-            value={periodo}
-            onChange={(e) => setPeriodo(e.target.value)}
-            className={campo}
-          >
-            <option>Hoje — o mais cedo possível</option>
-            <option>Hoje — manhã</option>
-            <option>Hoje — tarde</option>
-            <option>Hoje — noite</option>
-          </select>
-        </div>
+        )}
       </div>
-
-      <div className="mt-8 border-t border-border pt-6">
-        <dl className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">Produto</dt>
-            <dd className="font-display tracking-widest">HOMEM FORTE 500 ML</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">Preço unitário</dt>
-            <dd>{kz(PRECO_UNITARIO)}</dd>
-          </div>
-          <div className="flex items-baseline justify-between border-t border-border pt-3">
-            <dt className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">TOTAL</dt>
-            <dd className="font-display text-3xl text-gold">{kz(total)}</dd>
-          </div>
-        </dl>
-      </div>
-
-      <button type="submit" className="btn-green mt-8 w-full py-4 font-display text-sm tracking-[0.2em]">
-        SOLICITAR PEDIDO NO WHATSAPP
-      </button>
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        {zona === "luanda"
-          ? "Em Luanda paga apenas quando receber."
-          : "Fora de Luanda o pagamento é feito antes e enviamos imediatamente."}
-      </p>
     </form>
   );
 }
@@ -414,6 +726,16 @@ const ingredientes = [
 
 function HomemForte() {
   const mostrarCtaFixo = usePastHero();
+
+  useEffect(() => {
+    fbq("track", "ViewContent", {
+      content_name: "HOMEM FORTE 500 ml",
+      content_ids: ["HF-500"],
+      content_type: "product",
+      value: PRECO_UNITARIO,
+      currency: "AOA",
+    });
+  }, []);
 
   const ficha = [
     ["Produto", "HOMEM FORTE"],
@@ -687,8 +1009,7 @@ function HomemForte() {
                 FAZER O PEDIDO EM 30 SEGUNDOS
               </h2>
               <p className="mt-4 text-sm text-muted-foreground">
-                Entrega já marcada para hoje — pode ajustar se preferir. Ao enviar, o pedido abre
-                directamente no nosso WhatsApp.
+                5 perguntas rápidas e o pedido abre directamente no nosso WhatsApp, já preenchido.
               </p>
             </Reveal>
             <div className="mt-10">
