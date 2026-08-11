@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "c7043d8c-02e5-4b43-a74e-72c62b85c923",
-  "project_id": "1cdad3e4-8a48-456d-9661-3e6ac6c842e6",
-  "url": "/__l5e/assets-v1/c7043d8c-02e5-4b43-a74e-72c62b85c923/hero-casal.png",
-  "r2_key": "a/v1/1cdad3e4-8a48-456d-9661-3e6ac6c842e6/c7043d8c-02e5-4b43-a74e-72c62b85c923/hero-casal.png",
-  "original_filename": "hero-casal.png",
-  "size": 1884069,
   "content_type": "image/png",
-  "created_at": "2026-08-10T20:16:08Z"
+  "created_at": "2026-08-10T20:16:08Z",
+  "original_filename": "hero-casal.png",
+  "project_id": "9d0a8b94-1d5e-4ba8-b898-78227dcd9fa4",
+  "r2_key": "a/v1/9d0a8b94-1d5e-4ba8-b898-78227dcd9fa4/c7043d8c-02e5-4b43-a74e-72c62b85c923/hero-casal.png",
+  "size": 1884069,
+  "url": "/__l5e/assets-v1/c7043d8c-02e5-4b43-a74e-72c62b85c923/hero-casal.png",
+  "version": 1
 }

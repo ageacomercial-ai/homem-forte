@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
 
-import frasco from "@/assets/homem-forte-frasco.jpg";
-import medico from "@/assets/homem-forte-medico.jpg.asset.json";
-import ingGinseng from "@/assets/ing-ginseng.jpg";
-import ingBatata from "@/assets/ing-batata.jpg";
-import ingMaca from "@/assets/ing-maca.jpg";
+import frasco from "@/assets/homem-forte-frasco.jpg.asset.json";
+import heroVideo from "@/assets/hero-video.mp4.asset.json";
+import prodHero from "@/assets/prod-frasco-hero.jpg";
+import ingrGinseng from "@/assets/ingr-ginseng.jpg";
+import ingrBeterraba from "@/assets/ingr-beterraba.jpg";
+import ingrMaca from "@/assets/ingr-maca.jpg";
 import { Reveal } from "@/components/Reveal";
 import { usePastHero } from "@/hooks/use-reveal";
 import {
@@ -16,28 +17,33 @@ import {
 } from "@/components/ui/accordion";
 
 const PRECO_UNITARIO = 10000;
-const WHATSAPP_NUMERO = "244937876711";
+const WHATSAPP = "244937876711";
 
 const kz = (valor: number) => `${valor.toLocaleString("pt-AO").replace(/,/g, ".")} Kz`;
+
+const hojeISO = () => {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+};
 
 export const Route = createFileRoute("/")({
   component: HomemForte,
   head: () => ({
     meta: [
-      { title: "HOMEM FORTE | 500 ml" },
+      { title: "HOMEM FORTE 500 ml | Entrega hoje em Angola" },
       {
         name: "description",
         content:
-          "HOMEM FORTE — suplemento de 500 ml de origem angolana, 10.000 Kz, pagamento somente na entrega.",
+          "HOMEM FORTE — 500 ml, 10.000 Kz. Em Luanda paga na entrega. Peça agora pelo WhatsApp e receba hoje.",
       },
-      { property: "og:title", content: "HOMEM FORTE | 500 ml" },
+      { property: "og:title", content: "HOMEM FORTE 500 ml | Entrega hoje" },
       {
         property: "og:description",
         content:
-          "Fórmula de 500 ml com ingredientes como ginseng, batata africana e maca peruana. 10.000 Kz, pagamento na entrega.",
+          "Fórmula de 500 ml com ginseng, beterraba, gengibre e maca peruana. 10.000 Kz, entrega hoje em Luanda.",
       },
       { property: "og:type", content: "product" },
-      { property: "og:url", content: "/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [{ rel: "canonical", href: "/" }],
@@ -51,6 +57,7 @@ export const Route = createFileRoute("/")({
 const NAV = [
   { href: "#inicio", label: "Início" },
   { href: "#produto", label: "Produto" },
+  { href: "#ingredientes", label: "Ingredientes" },
   { href: "#utilizar", label: "Como utilizar" },
   { href: "#faq", label: "FAQ" },
 ];
@@ -82,7 +89,7 @@ function Header() {
           ))}
           <a
             href="#pedido"
-            className="border border-gold px-5 py-2 text-xs font-semibold tracking-[0.18em] text-gold transition-colors hover:bg-gold hover:text-primary-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            className="btn-green px-5 py-2 text-xs font-bold tracking-[0.18em]"
           >
             FAZER PEDIDO
           </a>
@@ -127,7 +134,7 @@ function Header() {
               <a
                 href="#pedido"
                 onClick={() => setAberto(false)}
-                className="cta-primary mt-4 block px-5 py-3 text-center text-xs font-bold tracking-[0.18em]"
+                className="btn-green mt-4 block px-5 py-3 text-center text-xs font-bold tracking-[0.18em]"
               >
                 FAZER PEDIDO
               </a>
@@ -140,17 +147,10 @@ function Header() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Formulário de pedido                                                */
+/* Formulário de pedido → WhatsApp                                      */
 /* ------------------------------------------------------------------ */
 
-type Campo = "nome" | "telefone" | "endereco" | "dia" | "janela";
-type Erros = Partial<Record<Campo, string>>;
-
-const JANELAS_ENTREGA = [
-  { id: "manha", label: "Manhã", faixa: "8h – 12h" },
-  { id: "tarde", label: "Tarde", faixa: "12h – 17h" },
-  { id: "noite", label: "Noite", faixa: "17h – 20h" },
-] as const;
+type Erros = Partial<Record<"nome" | "telefone" | "endereco" | "dia", string>>;
 
 function mascaraTelefone(valor: string) {
   const digitos = valor.replace(/\D/g, "").slice(0, 9);
@@ -159,124 +159,53 @@ function mascaraTelefone(valor: string) {
   );
 }
 
-function validarCampo(campo: Campo, valores: {
-  nome: string;
-  telefone: string;
-  endereco: string;
-  dia: string;
-  janela: string;
-}): string | undefined {
-  switch (campo) {
-    case "nome":
-      return valores.nome.trim().length < 3 ? "Indique o seu nome completo." : undefined;
-    case "telefone":
-      return valores.telefone.replace(/\D/g, "").length !== 9
-        ? "Indique um telefone válido com 9 dígitos."
-        : undefined;
-    case "endereco":
-      return valores.endereco.trim().length < 5 ? "Indique o endereço de entrega." : undefined;
-    case "dia":
-      return !valores.dia ? "Escolha o dia da entrega." : undefined;
-    case "janela":
-      return !valores.janela ? "Escolha um período de entrega." : undefined;
-  }
-}
-
 function FormularioPedido() {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [endereco, setEndereco] = useState("");
-  const [dia, setDia] = useState("");
-  const [janela, setJanela] = useState("");
+  const [zona, setZona] = useState<"luanda" | "provincia">("luanda");
+  const [dia, setDia] = useState(hojeISO());
+  const [periodo, setPeriodo] = useState("Hoje — o mais cedo possível");
   const [quantidade, setQuantidade] = useState(1);
   const [erros, setErros] = useState<Erros>({});
-  const [tocados, setTocados] = useState<Partial<Record<Campo, boolean>>>({});
-  const [enviado, setEnviado] = useState(false);
 
   const total = useMemo(() => PRECO_UNITARIO * quantidade, [quantidade]);
-  const valores = { nome, telefone, endereco, dia, janela };
 
-  function onBlurCampo(campo: Campo) {
-    setTocados((t) => ({ ...t, [campo]: true }));
-    const msg = validarCampo(campo, valores);
-    setErros((e) => {
-      if (!msg) {
-        const resto = { ...e };
-        delete resto[campo];
-        return resto;
-      }
-      return { ...e, [campo]: msg };
-    });
-  }
-
-  function validarTudo(): Erros {
-    const campos: Campo[] = ["nome", "telefone", "endereco", "dia", "janela"];
+  function validar(): Erros {
     const e: Erros = {};
-    for (const c of campos) {
-      const msg = validarCampo(c, valores);
-      if (msg) e[c] = msg;
-    }
+    if (nome.trim().length < 3) e.nome = "Indique o seu nome.";
+    if (telefone.replace(/\D/g, "").length !== 9)
+      e.telefone = "Telefone com 9 dígitos.";
+    if (endereco.trim().length < 4) e.endereco = "Indique onde entregar.";
+    if (!dia) e.dia = "Escolha o dia.";
     return e;
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const e = validarTudo();
+    const e = validar();
     setErros(e);
-    setTocados({ nome: true, telefone: true, endereco: true, dia: true, janela: true });
     if (Object.keys(e).length > 0) return;
 
-    const janelaLabel = JANELAS_ENTREGA.find((j) => j.id === janela);
-    const mensagem = [
-      "Novo pedido — HOMEM FORTE",
-      `Nome: ${nome.trim()}`,
+    const msg = [
+      "*NOVO PEDIDO — HOMEM FORTE 500 ml*",
+      `Nome: ${nome}`,
       `Telefone: ${telefone}`,
-      `Endereço: ${endereco.trim()}`,
-      `Dia da entrega: ${dia}`,
-      `Período: ${janelaLabel ? `${janelaLabel.label} (${janelaLabel.faixa})` : ""}`,
+      `Local: ${zona === "luanda" ? "Luanda" : "Fora de Luanda (província)"}`,
+      `Endereço: ${endereco}`,
+      `Entrega: ${dia} · ${periodo}`,
       `Quantidade: ${quantidade}`,
       `Total: ${kz(total)}`,
-      "Pagamento: somente na entrega",
+      zona === "luanda"
+        ? "Pagamento: na entrega"
+        : "Pagamento: antecipado (envio imediato após confirmação)",
     ].join("\n");
 
-    window.open(
-      `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensagem)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
-    setEnviado(true);
-  }
-
-  if (enviado) {
-    return (
-      <div className="border border-gold/40 bg-surface p-8 text-center md:p-12">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-gold text-gold">
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-        </div>
-        <h3 className="mt-6 font-display text-2xl tracking-wide">Pedido pronto para envio.</h3>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Abrimos o WhatsApp com os seus dados preenchidos — basta confirmar o envio por lá para
-          organizarmos a entrega.
-        </p>
-        <p className="mt-6 text-xs tracking-[0.18em] text-gold">
-          TOTAL: {kz(total)} · PAGAMENTO NA ENTREGA
-        </p>
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMERO}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 inline-block text-xs tracking-[0.14em] text-muted-foreground underline underline-offset-4 hover:text-gold"
-        >
-          Não abriu automaticamente? Toque aqui.
-        </a>
-      </div>
-    );
+    window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
   }
 
   const campo =
-    "w-full border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-gold focus:outline-none";
+    "w-full border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-green focus:outline-none";
   const rotulo = "mb-2 block text-xs font-semibold tracking-[0.16em] text-muted-foreground";
 
   return (
@@ -284,7 +213,7 @@ function FormularioPedido() {
       <div className="grid gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
           <label htmlFor="nome" className={rotulo}>
-            NOME COMPLETO
+            NOME
           </label>
           <input
             id="nome"
@@ -292,17 +221,16 @@ function FormularioPedido() {
             autoComplete="name"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            onBlur={() => onBlurCampo("nome")}
-            aria-invalid={!!erros.nome && tocados.nome}
+            aria-invalid={!!erros.nome}
             className={campo}
             placeholder="O seu nome"
           />
-          {erros.nome && tocados.nome && <p className="mt-2 text-xs text-destructive">{erros.nome}</p>}
+          {erros.nome && <p className="mt-2 text-xs text-destructive">{erros.nome}</p>}
         </div>
 
         <div>
           <label htmlFor="telefone" className={rotulo}>
-            TELEFONE
+            TELEFONE (WHATSAPP)
           </label>
           <input
             id="telefone"
@@ -311,14 +239,11 @@ function FormularioPedido() {
             autoComplete="tel"
             value={telefone}
             onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
-            onBlur={() => onBlurCampo("telefone")}
-            aria-invalid={!!erros.telefone && tocados.telefone}
+            aria-invalid={!!erros.telefone}
             className={campo}
             placeholder="923 000 000"
           />
-          {erros.telefone && tocados.telefone && (
-            <p className="mt-2 text-xs text-destructive">{erros.telefone}</p>
-          )}
+          {erros.telefone && <p className="mt-2 text-xs text-destructive">{erros.telefone}</p>}
         </div>
 
         <div>
@@ -330,7 +255,7 @@ function FormularioPedido() {
               type="button"
               aria-label="Diminuir quantidade"
               onClick={() => setQuantidade((q) => Math.max(1, q - 1))}
-              className="px-4 py-3 text-lg text-muted-foreground transition-colors hover:text-gold"
+              className="px-4 py-3 text-lg text-muted-foreground transition-colors hover:text-green"
             >
               −
             </button>
@@ -350,7 +275,7 @@ function FormularioPedido() {
               type="button"
               aria-label="Aumentar quantidade"
               onClick={() => setQuantidade((q) => Math.min(99, q + 1))}
-              className="px-4 py-3 text-lg text-muted-foreground transition-colors hover:text-gold"
+              className="px-4 py-3 text-lg text-muted-foreground transition-colors hover:text-green"
             >
               +
             </button>
@@ -358,8 +283,34 @@ function FormularioPedido() {
         </div>
 
         <div className="md:col-span-2">
+          <span className={rotulo}>ONDE ESTÁ?</span>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(
+              [
+                ["luanda", "Luanda — pago na entrega"],
+                ["provincia", "Fora de Luanda — pago antes"],
+              ] as const
+            ).map(([valor, label]) => (
+              <button
+                key={valor}
+                type="button"
+                onClick={() => setZona(valor)}
+                aria-pressed={zona === valor}
+                className={`border px-4 py-3 text-left text-sm transition-colors ${
+                  zona === valor
+                    ? "border-green bg-green/10 text-foreground"
+                    : "border-input text-muted-foreground hover:border-green/50"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="md:col-span-2">
           <label htmlFor="endereco" className={rotulo}>
-            ENDEREÇO
+            ENDEREÇO DE ENTREGA
           </label>
           <textarea
             id="endereco"
@@ -367,62 +318,46 @@ function FormularioPedido() {
             rows={2}
             value={endereco}
             onChange={(e) => setEndereco(e.target.value)}
-            onBlur={() => onBlurCampo("endereco")}
-            aria-invalid={!!erros.endereco && tocados.endereco}
+            aria-invalid={!!erros.endereco}
             className={campo}
             placeholder="Bairro, rua, referência"
           />
-          {erros.endereco && tocados.endereco && (
-            <p className="mt-2 text-xs text-destructive">{erros.endereco}</p>
-          )}
+          {erros.endereco && <p className="mt-2 text-xs text-destructive">{erros.endereco}</p>}
         </div>
 
         <div>
           <label htmlFor="dia" className={rotulo}>
-            DIA DA ENTREGA
+            DIA DA ENTREGA (HOJE)
           </label>
           <input
             id="dia"
             name="dia"
             type="date"
             value={dia}
+            min={hojeISO()}
             onChange={(e) => setDia(e.target.value)}
-            onBlur={() => onBlurCampo("dia")}
-            aria-invalid={!!erros.dia && tocados.dia}
+            aria-invalid={!!erros.dia}
             className={campo}
           />
-          {erros.dia && tocados.dia && <p className="mt-2 text-xs text-destructive">{erros.dia}</p>}
+          {erros.dia && <p className="mt-2 text-xs text-destructive">{erros.dia}</p>}
         </div>
 
         <div>
-          <span className={rotulo}>PERÍODO DE ENTREGA</span>
-          <div className="grid grid-cols-3 gap-2" role="group" aria-label="Período de entrega">
-            {JANELAS_ENTREGA.map((j) => (
-              <button
-                key={j.id}
-                type="button"
-                onClick={() => {
-                  setJanela(j.id);
-                  setErros((e) => {
-                    const { janela: _omit, ...resto } = e;
-                    return resto;
-                  });
-                }}
-                aria-pressed={janela === j.id}
-                className={`border px-2 py-3 text-center text-xs transition-colors ${
-                  janela === j.id
-                    ? "border-gold bg-gold/10 text-gold"
-                    : "border-input text-muted-foreground hover:border-gold/50 hover:text-foreground"
-                }`}
-              >
-                <span className="block font-semibold tracking-wide">{j.label}</span>
-                <span className="mt-0.5 block text-[0.65rem] opacity-80">{j.faixa}</span>
-              </button>
-            ))}
-          </div>
-          {erros.janela && tocados.janela && (
-            <p className="mt-2 text-xs text-destructive">{erros.janela}</p>
-          )}
+          <label htmlFor="periodo" className={rotulo}>
+            PERÍODO
+          </label>
+          <select
+            id="periodo"
+            name="periodo"
+            value={periodo}
+            onChange={(e) => setPeriodo(e.target.value)}
+            className={campo}
+          >
+            <option>Hoje — o mais cedo possível</option>
+            <option>Hoje — manhã</option>
+            <option>Hoje — tarde</option>
+            <option>Hoje — noite</option>
+          </select>
         </div>
       </div>
 
@@ -430,7 +365,7 @@ function FormularioPedido() {
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Produto</dt>
-            <dd className="font-display tracking-widest">HOMEM FORTE</dd>
+            <dd className="font-display tracking-widest">HOMEM FORTE 500 ML</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Preço unitário</dt>
@@ -443,13 +378,14 @@ function FormularioPedido() {
         </dl>
       </div>
 
-      <button
-        type="submit"
-        className="cta-primary mt-8 w-full py-4 font-display text-sm tracking-[0.2em]"
-      >
-        SOLICITAR PEDIDO
+      <button type="submit" className="btn-green mt-8 w-full py-4 font-display text-sm tracking-[0.2em]">
+        SOLICITAR PEDIDO NO WHATSAPP
       </button>
-      <p className="mt-3 text-center text-xs text-muted-foreground">Sem pagamento antecipado.</p>
+      <p className="mt-3 text-center text-xs text-muted-foreground">
+        {zona === "luanda"
+          ? "Em Luanda paga apenas quando receber."
+          : "Fora de Luanda o pagamento é feito antes e enviamos imediatamente."}
+      </p>
     </form>
   );
 }
@@ -458,18 +394,26 @@ function FormularioPedido() {
 /* Página                                                              */
 /* ------------------------------------------------------------------ */
 
+const ingredientes = [
+  {
+    nome: "GINSENG",
+    img: ingrGinseng,
+    texto: "Raiz tradicionalmente associada à energia e à disposição no dia a dia.",
+  },
+  {
+    nome: "BETERRABA + GENGIBRE",
+    img: ingrBeterraba,
+    texto: "Combinação presente na fórmula, ligada à circulação e ao vigor.",
+  },
+  {
+    nome: "MACA PERUANA + BATATA AFRICANA",
+    img: ingrMaca,
+    texto: "Raízes reconhecidas na tradição masculina pela vitalidade.",
+  },
+];
+
 function HomemForte() {
   const mostrarCtaFixo = usePastHero();
-
-  const valores = [
-    { n: "01", titulo: "500 ML", icone: "M7 3h10v4l-2 2v10a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V9L7 7z" },
-    {
-      n: "02",
-      titulo: "FÓRMULA COM INGREDIENTES SELECIONADOS",
-      icone: "M12 3v18M5 8c4 0 7 3 7 7M19 8c-4 0-7 3-7 7",
-    },
-    { n: "03", titulo: "ORIGEM ANGOLA", icone: "M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" },
-  ];
 
   const ficha = [
     ["Produto", "HOMEM FORTE"],
@@ -477,213 +421,212 @@ function HomemForte() {
     ["Origem", "Angola"],
     ["Público informado", "Homens com 18 anos ou mais"],
     ["Preço", "10.000 Kz"],
-    ["Pagamento", "Somente na entrega"],
+    ["Pagamento", "Luanda: na entrega · Província: antes do envio"],
     ["Utilização", "2 tampas pela manhã + 2 tampas à noite"],
     ["Conservação", "Refrigerado / geleira na maior parte do tempo"],
   ];
 
-  const ingredientes = [
-    { nome: "GINSENG", imagem: ingGinseng },
-    { nome: "BATATA AFRICANA", imagem: ingBatata },
-    { nome: "MACA PERUANA", imagem: ingMaca },
-  ];
-
   const faq = [
-    ["Quanto custa o HOMEM FORTE?", "10.000 Kz."],
-    ["Qual é a apresentação?", "500 ml."],
+    ["Quanto custa o HOMEM FORTE?", "10.000 Kz o frasco de 500 ml."],
     [
-      "Como é utilizado?",
-      "O modo de utilização informado é de 2 tampas pela manhã e 2 tampas à noite.",
+      "Como faço o pedido?",
+      "Preenche o formulário e o pedido entra directamente no nosso WhatsApp. Confirmamos e organizamos a entrega de hoje.",
     ],
+    [
+      "Como funciona o pagamento?",
+      "Em Luanda paga somente na entrega. Fora de Luanda o pagamento é feito antes e enviamos imediatamente.",
+    ],
+    [
+      "Consigo receber hoje?",
+      "Sim. Em Luanda a entrega é feita hoje mesmo, dentro do stock disponível do dia.",
+    ],
+    ["Como é utilizado?", "2 tampas pela manhã e 2 tampas à noite."],
     ["Como conservar?", "Manter refrigerado, na geleira, na maior parte do tempo."],
-    ["Como funciona o pagamento?", "O pagamento é feito somente no momento da entrega."],
     [
       "Para quem é indicado?",
       "A informação fornecida pela empresa indica homens com 18 anos ou mais.",
     ],
-    [
-      "Quando os efeitos podem ser percebidos?",
-      "Segundo a informação fornecida pela empresa, os efeitos podem ser percebidos progressivamente já nos primeiros dias, conforme a experiência relatada com o produto.",
-    ],
   ];
+
+  const whatsappDireto = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
+    "Olá! Quero encomendar o HOMEM FORTE 500 ml para hoje.",
+  )}`;
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="pt-20">
-        {/* SEÇÃO 1 — HERO */}
-        <section id="inicio" className="relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_50%_at_70%_20%,color-mix(in_oklab,var(--gold)_10%,transparent),transparent_70%)]" />
-          <div className="relative mx-auto grid max-w-6xl gap-12 px-5 py-16 md:px-8 md:py-24 lg:grid-cols-2 lg:items-center">
-            <div>
-              <span className="inline-block border border-gold/50 px-4 py-1.5 text-[0.7rem] font-semibold tracking-[0.3em] text-gold">
-                HOMEM FORTE
-              </span>
-              <h1 className="mt-7 font-display text-4xl leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-                UMA ESCOLHA PARA O HOMEM QUE VALORIZA SUA{" "}
-                <span className="text-gold-gradient">VITALIDADE.</span>
-              </h1>
-              <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground">
-                Fórmula de 500 ml com ingredientes como ginseng, batata africana e maca peruana.
-              </p>
+      <main>
+        {/* SEÇÃO 1 — HERO EM VÍDEO */}
+        <section id="inicio" className="relative min-h-[92vh] overflow-hidden">
+          <video
+            className="absolute inset-0 h-full w-full object-cover"
+            src={heroVideo.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/75 to-background/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent" />
 
-              <ul className="mt-8 space-y-2.5 text-sm">
-                {["500 ml", "Produto de origem angolana", "Para homens com 18 anos ou mais"].map(
-                  (item) => (
-                    <li key={item} className="flex items-center gap-3">
-                      <span className="text-gold">✓</span>
-                      <span className="text-foreground/90">{item}</span>
-                    </li>
-                  ),
-                )}
-              </ul>
+          <div className="relative mx-auto flex min-h-[92vh] max-w-6xl flex-col justify-end px-5 pb-16 pt-32 md:px-8 md:pb-24">
+            <span className="inline-flex w-fit items-center gap-2 border border-green/60 bg-green/10 px-4 py-1.5 text-[0.7rem] font-bold tracking-[0.25em] text-green">
+              ÚLTIMOS FRASCOS DISPONÍVEIS HOJE
+            </span>
+            <h1 className="mt-6 max-w-3xl font-display text-4xl leading-[1.03] tracking-tight sm:text-6xl lg:text-7xl">
+              O SILÊNCIO NO QUARTO <span className="text-gold-gradient">TEM SOLUÇÃO.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-foreground/85 sm:text-lg">
+              HOMEM FORTE — 500 ml de fórmula natural angolana com ginseng, beterraba, gengibre e
+              maca peruana. Peça agora e receba <strong className="text-foreground">hoje</strong>.
+            </p>
 
-              <div className="mt-10">
-                <p className="font-display text-5xl tracking-tight text-foreground sm:text-6xl">
-                  10.000 Kz
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">Pagamento somente na entrega.</p>
-              </div>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#pedido"
-                  className="cta-primary group inline-flex items-center justify-center gap-2 px-8 py-4 text-center font-display text-sm tracking-[0.2em]"
-                >
-                  QUERO O HOMEM FORTE
-                  <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">
-                    →
-                  </span>
-                </a>
-                <a
-                  href="#produto"
-                  className="border border-border px-8 py-4 text-center font-display text-sm tracking-[0.2em] text-foreground transition-colors hover:border-gold hover:text-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-                >
-                  VER DETALHES
-                </a>
-              </div>
-
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a
-                href={`https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(
-                  "Olá! Quero encomendar o HOMEM FORTE (500 ml, 10.000 Kz).",
-                )}`}
+                href="#pedido"
+                className="btn-green px-8 py-4 text-center font-display text-sm tracking-[0.2em]"
+              >
+                QUERO O MEU HOJE — 10.000 Kz
+              </a>
+              <a
+                href={whatsappDireto}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-2 text-xs tracking-[0.14em] text-muted-foreground transition-colors hover:text-gold"
+                className="border border-border/80 bg-background/60 px-8 py-4 text-center font-display text-sm tracking-[0.2em] text-foreground backdrop-blur transition-colors hover:border-green hover:text-green"
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="currentColor">
-                  <path d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.6-1.9-.1-.3 0-.4.1-.5l.4-.5c.1-.1.2-.3.2-.4.1-.1 0-.3 0-.4-.1-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.3-.8.8-.8 1.9s.8 2.2.9 2.4c.1.2 1.6 2.4 3.8 3.4.5.2.9.4 1.3.5.5.2 1 .1 1.4.1.4-.1 1.3-.5 1.5-1 .2-.5.2-.9.1-1z" />
-                  <path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.1 8.1 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z" />
-                </svg>
-                Prefere pedir direto no WhatsApp?
+                FALAR NO WHATSAPP
               </a>
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-6 bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--gold)_14%,transparent),transparent_65%)] blur-2xl" />
-              {/* [IMAGEM REAL DO PRODUTO] — src/assets/homem-forte-frasco.jpg */}
-              <img
-                src={frasco}
-                alt="Frasco de 500 ml do suplemento HOMEM FORTE sobre mesa de madeira"
-                width={828}
-                height={1148}
-                loading="eager"
-                fetchPriority="high"
-                className="relative mx-auto w-full max-w-md border border-border object-cover shadow-[var(--shadow-premium)]"
-              />
-            </div>
+            <p className="mt-5 text-xs tracking-[0.18em] text-muted-foreground">
+              LUANDA: PAGA NA ENTREGA · FORA DE LUANDA: ENVIO IMEDIATO
+            </p>
           </div>
         </section>
 
-        {/* SEÇÃO 2 — PROPOSTA DE VALOR */}
-        <section id="produto" className="border-t border-border bg-surface/40">
+        {/* SEÇÃO 2 — HISTÓRIA / GATILHO */}
+        <section className="border-t border-border bg-surface/40">
+          <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:px-8 md:py-28 lg:grid-cols-2 lg:items-center">
+            <Reveal>
+              <img
+                src={prodHero}
+                alt="Frasco de 500 ml do HOMEM FORTE em fundo escuro com iluminação dourada"
+                loading="lazy"
+                width={1024}
+                height={1280}
+                className="w-full border border-border object-cover shadow-[var(--shadow-premium)]"
+              />
+            </Reveal>
+            <Reveal>
+              <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
+                O PROBLEMA NÃO É VOCÊ. É <span className="text-gold">FALTA DE COMBUSTÍVEL.</span>
+              </h2>
+              <p className="mt-5 text-base leading-relaxed text-muted-foreground">
+                Cansaço, stress, noites mal dormidas e alimentação corrida tiram a energia do homem.
+                O corpo continua ali — só precisa do que perdeu.
+              </p>
+              <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                O HOMEM FORTE nasceu em Angola para isso: uma fórmula de 500 ml, tomada de manhã e à
+                noite, que devolve disposição, firmeza e confiança. Milhares de homens já não saem
+                de casa sem o frasco na geleira.
+              </p>
+              <ul className="mt-8 space-y-3 text-sm">
+                {[
+                  "Energia e disposição do primeiro ao último dia do frasco",
+                  "Fórmula natural, sem complicação",
+                  "Discrição total na entrega",
+                ].map((i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="text-green">✓</span>
+                    <span className="text-foreground/90">{i}</span>
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="#pedido"
+                className="btn-green mt-9 inline-block px-8 py-4 font-display text-sm tracking-[0.2em]"
+              >
+                FAZER PEDIDO AGORA
+              </a>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* SEÇÃO 3 — PRODUTO */}
+        <section id="produto" className="border-t border-border">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
               <h2 className="max-w-3xl font-display text-3xl tracking-tight sm:text-4xl">
-                SIMPLICIDADE. PRATICIDADE. <span className="text-gold">HOMEM FORTE.</span>
+                500 ML DE <span className="text-gold">FORÇA, POTÊNCIA E VITALIDADE.</span>
               </h2>
-              <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground">
-                O HOMEM FORTE é apresentado em uma embalagem de 500 ml e reúne ingredientes
-                informados na fórmula, como ginseng, batata africana e maca peruana.
-              </p>
             </Reveal>
 
-            <div className="mt-14 grid gap-px bg-border sm:grid-cols-3">
-              {valores.map((v) => (
-                <Reveal key={v.n} className="bg-background">
-                  <div className="group h-full bg-background p-8 transition-colors duration-300 hover:bg-surface">
-                    <span className="font-display text-xs tracking-[0.3em] text-gold">{v.n}</span>
-                    <svg
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                      className="mt-6 h-8 w-8 text-muted-foreground transition-colors duration-300 group-hover:text-gold"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d={v.icone} />
-                    </svg>
-                    <h3 className="mt-6 font-display text-lg leading-snug tracking-wide">
-                      {v.titulo}
-                    </h3>
-                  </div>
-                </Reveal>
-              ))}
+            <div className="mt-14 grid gap-10 lg:grid-cols-2 lg:items-center">
+              <Reveal>
+                <img
+                  src={frasco.url}
+                  alt="Frasco original do suplemento HOMEM FORTE de 500 ml"
+                  loading="lazy"
+                  width={828}
+                  height={1148}
+                  className="w-full border border-border object-cover shadow-[var(--shadow-premium)]"
+                />
+              </Reveal>
+              <Reveal>
+                <dl className="divide-y divide-border border-y border-border">
+                  {ficha.map(([k, v]) => (
+                    <div key={k} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 py-4">
+                      <dt className="text-sm text-muted-foreground">{k}</dt>
+                      <dd className="text-right text-sm font-medium text-foreground">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </Reveal>
             </div>
           </div>
         </section>
 
-        {/* SEÇÃO 3 — INGREDIENTES */}
-        <section className="border-t border-border">
+        {/* SEÇÃO 4 — INGREDIENTES */}
+        <section id="ingredientes" className="border-t border-border bg-surface/40">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
               <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
-                INGREDIENTES INFORMADOS NA FÓRMULA
+                O QUE ESTÁ DENTRO DO FRASCO
               </h2>
             </Reveal>
 
             <div className="mt-12 grid gap-6 sm:grid-cols-3">
-              {ingredientes.map((ing, i) => (
+              {ingredientes.map((ing) => (
                 <Reveal key={ing.nome}>
-                  <article className="group h-full overflow-hidden border border-border bg-surface transition-transform duration-300 hover:-translate-y-1 hover:border-gold/50">
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
-                        src={ing.imagem}
-                        alt={`${ing.nome} — ingrediente da fórmula HOMEM FORTE`}
-                        loading="lazy"
-                        width={1024}
-                        height={1024}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
-                      <span className="absolute left-4 top-4 font-display text-xs tracking-[0.3em] text-gold">
-                        0{i + 1}
-                      </span>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-display text-xl tracking-wide text-foreground">
+                  <article className="h-full overflow-hidden border border-border bg-background transition-transform duration-300 hover:-translate-y-1 hover:border-green/50">
+                    <img
+                      src={ing.img}
+                      alt={`Ingrediente da fórmula: ${ing.nome.toLowerCase()}`}
+                      loading="lazy"
+                      width={1024}
+                      height={1024}
+                      className="h-56 w-full object-cover"
+                    />
+                    <div className="p-7">
+                      <h3 className="font-display text-xl leading-snug tracking-wide text-foreground">
                         {ing.nome}
                       </h3>
-                      <div className="hairline mt-4 w-12" />
+                      <div className="hairline mt-4 w-16" />
+                      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                        {ing.texto}
+                      </p>
                     </div>
                   </article>
                 </Reveal>
               ))}
             </div>
-
-            <Reveal>
-              <p className="mt-8 border border-dashed border-border p-6 text-center font-display text-sm tracking-[0.2em] text-muted-foreground">
-                E OUTROS COMPONENTES DA FÓRMULA
-              </p>
-            </Reveal>
           </div>
         </section>
 
-        {/* SEÇÃO 4 — COMO UTILIZAR */}
-        <section id="utilizar" className="border-t border-border bg-surface/40">
+        {/* SEÇÃO 5 — COMO UTILIZAR */}
+        <section id="utilizar" className="border-t border-border">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
               <h2 className="font-display text-3xl tracking-tight sm:text-4xl">COMO UTILIZAR</h2>
@@ -695,7 +638,7 @@ function HomemForte() {
                 { titulo: "NOITE", valor: "2 tampas" },
               ].map((m) => (
                 <Reveal key={m.titulo}>
-                  <div className="border border-border bg-background p-10 text-center">
+                  <div className="border border-border bg-surface p-10 text-center">
                     <p className="font-display text-xs tracking-[0.3em] text-gold">{m.titulo}</p>
                     <p className="mt-4 font-display text-4xl tracking-tight">{m.valor}</p>
                   </div>
@@ -705,67 +648,33 @@ function HomemForte() {
 
             <Reveal>
               <p className="mt-8 max-w-2xl text-base leading-relaxed text-muted-foreground">
-                O modo de utilização informado é de 2 tampas pela manhã e 2 tampas à noite.
-              </p>
-              <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
                 Conservar refrigerado, mantendo na geleira na maior parte do tempo.
               </p>
             </Reveal>
           </div>
         </section>
 
-        {/* SEÇÃO 5 — INFORMAÇÃO SOBRE O PRODUTO */}
-        <section className="border-t border-border">
-          <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:px-8 md:py-28 lg:grid-cols-2 lg:items-center">
-            <Reveal>
-              <img
-                src={medico.url}
-                alt="Profissional de bata branca a segurar o frasco de 500 ml do HOMEM FORTE"
-                loading="lazy"
-                width={1152}
-                height={1367}
-                className="w-full border border-border object-cover shadow-[var(--shadow-premium)]"
-              />
-            </Reveal>
-
-            <Reveal>
-              <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
-                INFORMAÇÃO SOBRE O PRODUTO
-              </h2>
-              <dl className="mt-10 divide-y divide-border border-y border-border">
-                {ficha.map(([k, v]) => (
-                  <div key={k} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 py-4">
-                    <dt className="text-sm text-muted-foreground">{k}</dt>
-                    <dd className="text-right text-sm font-medium text-foreground">{v}</dd>
-                  </div>
-                ))}
-              </dl>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* SEÇÃO 6 — OFERTA */}
-        <section className="border-t border-border bg-surface/40">
+        {/* SEÇÃO 6 — OFERTA / ESCASSEZ */}
+        <section className="relative overflow-hidden border-t border-border bg-surface/40">
           <div className="mx-auto max-w-3xl px-5 py-20 text-center md:py-28">
             <Reveal>
-              <h2 className="font-display text-4xl tracking-tight sm:text-5xl">HOMEM FORTE</h2>
+              <span className="inline-block border border-green/60 bg-green/10 px-4 py-1.5 text-[0.7rem] font-bold tracking-[0.25em] text-green">
+                STOCK LIMITADO PARA AS ENTREGAS DE HOJE
+              </span>
+              <h2 className="mt-8 font-display text-4xl tracking-tight sm:text-5xl">HOMEM FORTE</h2>
               <p className="mt-3 text-sm tracking-[0.3em] text-muted-foreground">500 ML</p>
-              <p className="mt-10 font-display text-6xl tracking-tight text-gold sm:text-7xl">
+              <p className="mt-8 font-display text-6xl tracking-tight text-gold sm:text-7xl">
                 10.000 Kz
               </p>
               <p className="mt-4 text-sm text-muted-foreground">
-                Pagamento somente no momento da entrega.
+                Em Luanda paga somente no momento da entrega.
               </p>
               <a
                 href="#pedido"
-                className="cta-primary group mt-10 inline-flex items-center gap-2 px-12 py-4 font-display text-sm tracking-[0.2em]"
+                className="btn-green mt-10 inline-block px-12 py-4 font-display text-sm tracking-[0.2em]"
               >
-                QUERO RECEBER
-                <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">
-                  →
-                </span>
+                QUERO RECEBER HOJE
               </a>
-              <p className="mt-4 text-xs text-muted-foreground">Sem pagamento antecipado.</p>
             </Reveal>
           </div>
         </section>
@@ -774,9 +683,12 @@ function HomemForte() {
         <section id="pedido" className="border-t border-border">
           <div className="mx-auto max-w-3xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
-              <h2 className="font-display text-3xl tracking-tight sm:text-4xl">FAZER O PEDIDO</h2>
+              <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
+                FAZER O PEDIDO EM 30 SEGUNDOS
+              </h2>
               <p className="mt-4 text-sm text-muted-foreground">
-                Preencha os dados para organização da entrega.
+                Entrega já marcada para hoje — pode ajustar se preferir. Ao enviar, o pedido abre
+                directamente no nosso WhatsApp.
               </p>
             </Reveal>
             <div className="mt-10">
@@ -787,25 +699,19 @@ function HomemForte() {
 
         {/* SEÇÃO 8 — PAGAMENTO */}
         <section className="border-t border-border bg-surface/40">
-          <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 px-5 py-16 text-center md:py-20">
-            <svg
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              className="h-10 w-10 text-gold"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M1 6h13v9H1zM14 9h4l3 3v3h-7z" />
-              <circle cx="5.5" cy="18" r="1.8" />
-              <circle cx="17.5" cy="18" r="1.8" />
-            </svg>
-            <h2 className="font-display text-2xl tracking-[0.15em]">PAGAMENTO NA ENTREGA</h2>
-            <p className="text-sm text-muted-foreground">
-              Você paga somente no momento da entrega.
-            </p>
+          <div className="mx-auto grid max-w-4xl gap-6 px-5 py-16 sm:grid-cols-2 md:py-20">
+            <div className="border border-green/40 bg-green/5 p-8 text-center">
+              <h2 className="font-display text-xl tracking-[0.12em] text-green">EM LUANDA</h2>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Pagamento na entrega. Recebe o frasco, confere e paga.
+              </p>
+            </div>
+            <div className="border border-border bg-background p-8 text-center">
+              <h2 className="font-display text-xl tracking-[0.12em] text-gold">FORA DE LUANDA</h2>
+              <p className="mt-3 text-sm text-muted-foreground">
+                O pagamento é feito antes e enviamos imediatamente para a sua província.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -813,7 +719,9 @@ function HomemForte() {
         <section id="faq" className="border-t border-border">
           <div className="mx-auto max-w-3xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
-              <h2 className="font-display text-3xl tracking-tight sm:text-4xl">PERGUNTAS FREQUENTES</h2>
+              <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
+                PERGUNTAS FREQUENTES
+              </h2>
             </Reveal>
             <Accordion type="single" collapsible className="mt-10 w-full">
               {faq.map(([q, a], i) => (
@@ -832,24 +740,21 @@ function HomemForte() {
 
         {/* SEÇÃO 10 — CTA FINAL */}
         <section className="relative overflow-hidden border-t border-border">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,color-mix(in_oklab,var(--gold)_12%,transparent),transparent_70%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,color-mix(in_oklab,var(--green)_12%,transparent),transparent_70%)]" />
           <div className="relative mx-auto max-w-3xl px-5 py-24 text-center md:py-32">
             <Reveal>
               <h2 className="font-display text-3xl leading-tight tracking-tight sm:text-5xl">
-                PRONTO PARA CONHECER O HOMEM FORTE?
+                HOJE PODE SER O DIA EM QUE TUDO MUDA.
               </h2>
               <p className="mt-5 text-base text-muted-foreground">
-                Faça seu pedido e pague somente na entrega.
+                Últimos frascos reservados para as entregas de hoje.
               </p>
               <p className="mt-8 font-display text-5xl tracking-tight text-gold">10.000 Kz</p>
               <a
                 href="#pedido"
-                className="cta-primary group mt-10 inline-flex items-center gap-2 px-12 py-4 font-display text-sm tracking-[0.2em]"
+                className="btn-green mt-10 inline-block px-12 py-4 font-display text-sm tracking-[0.2em]"
               >
                 QUERO O HOMEM FORTE
-                <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">
-                  →
-                </span>
               </a>
             </Reveal>
           </div>
@@ -857,11 +762,19 @@ function HomemForte() {
       </main>
 
       {/* RODAPÉ */}
-      <footer className="border-t border-border bg-surface/60">
+      <footer className="border-t border-border bg-surface/60 pb-24 md:pb-0">
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-12 md:grid-cols-2 md:px-8">
           <div>
             <p className="font-display text-lg tracking-[0.22em]">HOMEM FORTE</p>
             <p className="mt-2 text-sm text-muted-foreground">Produto de origem angolana.</p>
+            <a
+              href={whatsappDireto}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-block text-sm text-green hover:underline"
+            >
+              WhatsApp: 937 876 711
+            </a>
           </div>
           <nav aria-label="Rodapé" className="md:justify-self-end">
             <ul className="flex flex-wrap gap-6">
@@ -883,17 +796,30 @@ function HomemForte() {
         </div>
       </footer>
 
-      {/* CTA fixo mobile — surge após a primeira dobra */}
+      {/* WhatsApp flutuante */}
+      <a
+        href={whatsappDireto}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Falar no WhatsApp"
+        className="btn-green fixed bottom-24 right-4 z-50 grid h-14 w-14 place-items-center rounded-full md:bottom-6"
+      >
+        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden="true">
+          <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm5.8 14.14c-.25.69-1.45 1.32-2 1.36-.51.04-1.16.06-1.87-.12-.43-.11-.99-.29-1.7-.6-2.99-1.29-4.94-4.3-5.09-4.5-.15-.2-1.22-1.62-1.22-3.09s.77-2.19 1.04-2.49c.27-.3.59-.37.79-.37h.57c.18 0 .43-.07.67.51.25.6.85 2.07.92 2.22.07.15.12.33.02.53-.1.2-.15.33-.3.5-.15.18-.31.39-.45.53-.15.15-.3.31-.13.6.17.3.76 1.25 1.63 2.03 1.12 1 2.06 1.31 2.36 1.46.3.15.47.12.64-.07.17-.2.74-.86.94-1.16.2-.3.4-.25.67-.15.27.1 1.72.81 2.01.96.3.15.5.22.57.35.07.13.07.74-.18 1.43Z" />
+        </svg>
+      </a>
+
+      {/* CTA fixo mobile */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 p-3 backdrop-blur-md transition-transform duration-300 md:hidden ${
+        className={`fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur-md transition-transform duration-300 md:hidden ${
           mostrarCtaFixo ? "translate-y-0" : "translate-y-full"
         }`}
       >
         <a
           href="#pedido"
-          className="cta-primary block py-4 text-center font-display text-sm tracking-[0.15em]"
+          className="btn-green block py-4 text-center font-display text-sm tracking-[0.15em]"
         >
-          QUERO O HOMEM FORTE — 10.000 Kz
+          PEDIR AGORA — 10.000 Kz
         </a>
       </div>
     </div>
