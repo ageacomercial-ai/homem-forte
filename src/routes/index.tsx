@@ -36,7 +36,8 @@ function fbq(...args: unknown[]) {
   (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq?.(...args);
 }
 
-const kz = (valor: number) => `${valor.toLocaleString("pt-AO").replace(/,/g, ".")} Kz`;
+const kz = (valor: number) =>
+  `${valor.toLocaleString("pt-AO").replace(/[,\s\u00A0\u202F]/g, ".")} Kz`;
 
 const hojeISO = () => {
   const d = new Date();
