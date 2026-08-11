@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/accordion";
 
 const PRECO_UNITARIO = 10000;
+const PRECO_ENTREGA = 1000;
 const WHATSAPP = "244937876711";
 const PIXEL_ID = "1032782669666254";
 
@@ -232,7 +233,8 @@ function FormularioPedido() {
   const painelRef = useRef<HTMLDivElement>(null);
   const ultimoClique = useRef(0);
 
-  const total = useMemo(() => PRECO_UNITARIO * quantidade, [quantidade]);
+  const totalProduto = useMemo(() => PRECO_UNITARIO * quantidade, [quantidade]);
+  const total = useMemo(() => totalProduto + PRECO_ENTREGA, [totalProduto]);
 
   function ir(proxima: number) {
     setEtapa(proxima);
@@ -309,6 +311,8 @@ function FormularioPedido() {
       "*Pedido*",
       "Produto: HOMEM FORTE 500 ML",
       `Quantidade: ${quantidade}`,
+      `Produto: ${kz(totalProduto)}`,
+      `Entrega: ${kz(PRECO_ENTREGA)}`,
       `Total: ${kz(total)}`,
       "",
       "*Entrega*",
@@ -592,10 +596,12 @@ function FormularioPedido() {
             <h3 className="font-display text-2xl tracking-tight text-foreground">SEU PEDIDO</h3>
 
             <div className="mt-6 border-t border-border">
-              <div className="flex items-center justify-between gap-4 py-4">
-                <div>
-                  <p className="font-display tracking-widest text-foreground">HOMEM FORTE 500 ML</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{kz(PRECO_UNITARIO)} cada</p>
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4">
+                <div className="min-w-0">
+                  <p className="break-words font-display tracking-widest text-foreground">
+                    HOMEM FORTE 500 ML
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">Quantidade</p>
                 </div>
                 <div className="flex shrink-0 items-center border border-input bg-background">
                   <button
@@ -628,14 +634,31 @@ function FormularioPedido() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-baseline justify-between border-t border-border pt-4">
-                <dt className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
-                  TOTAL
-                </dt>
-                <dd className="font-display text-3xl text-gold">
-                  {kz(total)} · {quantidade} {quantidade === 1 ? "frasc" : "frascos"}
-                </dd>
-              </div>
+
+              <dl className="space-y-2 border-t border-border pt-4 text-sm">
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="shrink-0 text-muted-foreground">
+                    Produto · {quantidade} {quantidade === 1 ? "frasco" : "frascos"}
+                  </dt>
+                  <dd className="whitespace-nowrap font-semibold text-foreground">
+                    {kz(totalProduto)}
+                  </dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="shrink-0 text-muted-foreground">Entrega</dt>
+                  <dd className="whitespace-nowrap font-semibold text-foreground">
+                    {kz(PRECO_ENTREGA)}
+                  </dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-3 border-t border-border pt-3">
+                  <dt className="shrink-0 text-xs font-semibold tracking-[0.18em] text-muted-foreground">
+                    TOTAL
+                  </dt>
+                  <dd className="whitespace-nowrap font-display text-2xl text-gold">
+                    {kz(total)}
+                  </dd>
+                </div>
+              </dl>
             </div>
 
             <div className="mt-6 grid gap-6 sm:grid-cols-2">
@@ -644,17 +667,17 @@ function FormularioPedido() {
                   ENTREGA
                 </p>
                 <dl className="mt-3 space-y-2 text-sm text-foreground">
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Data</dt>
-                    <dd>{rotuloDia(dia)}</dd>
+                  <div className="flex justify-between gap-3">
+                    <dt className="shrink-0 text-muted-foreground">Data</dt>
+                    <dd className="min-w-0 break-words text-right">{rotuloDia(dia)}</dd>
                   </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Período</dt>
-                    <dd>{periodo}</dd>
+                  <div className="flex justify-between gap-3">
+                    <dt className="shrink-0 text-muted-foreground">Período</dt>
+                    <dd className="min-w-0 break-words text-right">{periodo}</dd>
                   </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Local</dt>
-                    <dd className="text-right">
+                  <div className="flex justify-between gap-3">
+                    <dt className="shrink-0 text-muted-foreground">Local</dt>
+                    <dd className="min-w-0 break-words text-right">
                       {zona === "luanda" ? "Luanda" : `Outra província — ${provincia}`}
                     </dd>
                   </div>
@@ -666,25 +689,36 @@ function FormularioPedido() {
                   CLIENTE
                 </p>
                 <dl className="mt-3 space-y-2 text-sm text-foreground">
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Nome</dt>
-                    <dd>{nome}</dd>
+                  <div className="flex justify-between gap-3">
+                    <dt className="shrink-0 text-muted-foreground">Nome</dt>
+                    <dd className="min-w-0 break-words text-right">{nome}</dd>
                   </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Telefone</dt>
-                    <dd>{telefone}</dd>
+                  <div className="flex justify-between gap-3">
+                    <dt className="shrink-0 text-muted-foreground">Telefone</dt>
+                    <dd className="min-w-0 break-words text-right">{telefone}</dd>
                   </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Endereço</dt>
-                    <dd className="text-right">{endereco}</dd>
+                  <div className="flex justify-between gap-3">
+                    <dt className="shrink-0 text-muted-foreground">Endereço</dt>
+                    <dd className="min-w-0 break-words text-right">{endereco}</dd>
                   </div>
                 </dl>
               </div>
             </div>
 
-            <button type="submit" className="btn-green mt-8 w-full py-4 font-display text-sm tracking-[0.2em]">
-              🔥 FAZER MEU PEDIDO NO WHATSAPP
-            </button>
+            <div className="mt-8 grid gap-3">
+              <button
+                type="submit"
+                className="btn-green w-full py-4 font-display text-sm tracking-[0.2em]"
+              >
+                🔥 FAZER MEU PEDIDO NO WHATSAPP
+              </button>
+              <a
+                href={`tel:+${WHATSAPP}`}
+                className="block w-full border border-green/50 bg-background py-4 text-center font-display text-sm tracking-[0.2em] text-green transition-colors hover:bg-green/10"
+              >
+                📞 LIGAR AGORA
+              </a>
+            </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">
               O pedido abre no WhatsApp já preenchido — revê tudo e toca em Enviar.
             </p>
