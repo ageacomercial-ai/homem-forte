@@ -21,8 +21,18 @@ const PRECO_ENTREGA = 1000;
 const WHATSAPP = "244937876711";
 
 const CONTATOS = [
-  { rede: "UNITEL", numero: "937 876 711", tel: "tel:+244937876711" },
-  { rede: "AFRICELL", numero: "958 614 517", tel: "tel:+244958614517" },
+  {
+    rede: "UNITEL",
+    numero: "937 876 711",
+    tel: "tel:+244937876711",
+    cor: "bg-[#00923F]",
+  },
+  {
+    rede: "AFRICELL",
+    numero: "958 614 517",
+    tel: "tel:+244958614517",
+    cor: "bg-[#E20613]",
+  },
 ] as const;
 const PIXEL_ID = "1032782669666254";
 
@@ -684,14 +694,14 @@ function FormularioPedido() {
                     key={c.rede}
                     href={c.tel}
                     onClick={dispararLigacao}
-                    className={`btn-green flex flex-col items-center gap-1 px-2 py-4 text-center ${
-                      i > 0 ? "border-l border-background/25" : ""
+                    className={`${c.cor} flex flex-col items-center gap-1 px-2 py-4 text-center text-white transition-[filter] hover:brightness-110 ${
+                      i > 0 ? "border-l border-white/25" : ""
                     }`}
                   >
                     <span className="font-display text-sm font-bold tracking-[0.2em]">
                       {c.rede}
                     </span>
-                    <span className="text-xs tracking-[0.15em] opacity-70">{c.numero}</span>
+                    <span className="text-xs tracking-[0.15em] opacity-80">{c.numero}</span>
                   </a>
                 ))}
               </div>
