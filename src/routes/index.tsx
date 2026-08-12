@@ -213,7 +213,9 @@ const PROVINCIAS = [
 const ETAPAS_LABEL = ["QUANDO", "PERÍODO", "LOCAL", "DADOS", "RESUMO"] as const;
 
 function mascaraTelefone(valor: string) {
-  const digitos = valor.replace(/\D/g, "").slice(0, 9);
+  let digitos = valor.replace(/\D/g, "");
+  if (digitos.length > 9 && digitos.startsWith("244")) digitos = digitos.slice(3);
+  digitos = digitos.slice(0, 9);
   return digitos.replace(/(\d{3})(\d{0,3})(\d{0,3})/, (_m, a, b, c) =>
     [a, b, c].filter(Boolean).join(" "),
   );
