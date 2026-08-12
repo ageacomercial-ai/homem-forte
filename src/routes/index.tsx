@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import frasco from "@/assets/homem-forte-frasco.jpg";
 import prodHero from "@/assets/prod-frasco-hero.jpg";
@@ -18,6 +18,7 @@ import {
 
 const PRECO_UNITARIO = 10000;
 const PRECO_ENTREGA = 1000;
+const WHATSAPP = "244937876711";
 
 const CONTATOS = [
   {
@@ -209,7 +210,9 @@ const PROVINCIAS = [
   "Zaire",
 ] as const;
 
-const ETAPAS_LABEL = ["QUANDO", "PERÍODO", "LOCAL", "DADOS", "RESUMO"] as const;
+const ETAPAS_LABEL = ["QUANDO", "LOCAL", "DADOS", "RESUMO"] as const;
+const TOTAL_ETAPAS = ETAPAS_LABEL.length;
+const CHAVE_SALVA = "hf-pedido";
 
 function mascaraTelefone(valor: string) {
   const digitos = valor.replace(/\D/g, "").slice(0, 9);
@@ -236,7 +239,7 @@ const rotuloDia = (iso: string) => {
 function FormularioPedido() {
   const [etapa, setEtapa] = useState(1);
   const [dia, setDia] = useState("");
-  const [periodo, setPeriodo] = useState("");
+  const [periodo, setPeriodo] = useState<string>(PERIODOS[0]);
   const [zona, setZona] = useState<"" | "luanda" | "provincia">("");
   const [provincia, setProvincia] = useState("");
   const [nome, setNome] = useState("");
@@ -247,6 +250,30 @@ function FormularioPedido() {
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
   const painelRef = useRef<HTMLDivElement>(null);
   const ultimoClique = useRef(0);
+
+  /* Mantém os dados se o visitante voltar mais tarde */
+  useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(CHAVE_SALVA) ?? "{}");
+      if (typeof s.nome === "string") setNome(s.nome);
+      if (typeof s.telefone === "string") setTelefone(s.telefone);
+      if (typeof s.endereco === "string") setEndereco(s.endereco);
+      if (typeof s.provincia === "string") setProvincia(s.provincia);
+    } catch {
+      /* ignora */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        CHAVE_SALVA,
+        JSON.stringify({ nome, telefone, endereco, provincia }),
+      );
+    } catch {
+      /* ignora */
+    }
+  }, [nome, telefone, endereco, provincia]);
 
   const totalProduto = useMemo(() => PRECO_UNITARIO * quantidade, [quantidade]);
   const total = useMemo(() => totalProduto + PRECO_ENTREGA, [totalProduto]);
@@ -263,9 +290,8 @@ function FormularioPedido() {
   function validar(atual: number): Erros {
     const e: Erros = {};
     if (atual <= 1 && !dia) e.dia = "Escolha uma data.";
-    if (atual >= 2 && !periodo) e.periodo = "Escolha um período.";
-    if (atual >= 3 && !zona) e.zona = "Escolha a localização.";
-    if (atual >= 4) {
+    if (atual >= 2 && !zona) e.zona = "Escolha a localização.";
+    if (atual >= 3) {
       if (nome.trim().length < 3) e.nome = "Informe o seu nome.";
       const digitos = telefone.replace(/\D/g, "");
       if (!digitos) e.telefone = "Informe o seu número de telefone.";
@@ -298,17 +324,50 @@ function FormularioPedido() {
   function escolherPeriodo(valor: string) {
     setPeriodo(valor);
     limparErros("periodo");
-    ir(3);
   }
 
   function escolherZona(valor: "luanda" | "provincia") {
     setZona(valor);
     if (zona !== valor) setProvincia("");
     limparErros("zona");
-    ir(4);
+    ir(3);
   }
 
-  function dispararLigacao() {
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const e = validar(TOTAL_ETAPAS);
+    setErros(e);
+    if (Object.keys(e).length > 0) {
+      if (e.nome || e.telefone || e.endereco || e.provincia) ir(3);
+      else if (e.zona) ir(2);
+      else ir(1);
+      return;
+    }
+
+    const msg = [
+      "Olá! Quero fazer um pedido do HOMEM FORTE 500 ML.",
+      "",
+      "*Pedido*",
+      "Produto: HOMEM FORTE 500 ML",
+      `Quantidade: ${quantidade}`,
+      `Produto: ${kz(totalProduto)}`,
+      `Entrega: ${kz(PRECO_ENTREGA)}`,
+      `Total: ${kz(total)}`,
+      "",
+      "*Entrega*",
+      `Data: ${rotuloDia(dia)}`,
+      `Período: ${periodo}`,
+      `Local: ${zona === "luanda" ? "Luanda" : `Outra província — ${provincia}`}`,
+      "",
+      "*Cliente*",
+      `Nome: ${nome}`,
+      `Telefone: ${telefone}`,
+      `Endereço: ${endereco}`,
+      zona === "luanda"
+        ? "Pagamento: na entrega"
+        : "Pagamento: antecipado (envio imediato após confirmação)",
+    ].join("\n");
+
     if (Date.now() - ultimoClique.current > 2500) {
       ultimoClique.current = Date.now();
       fbq("track", "InitiateCheckout", {
@@ -319,6 +378,7 @@ function FormularioPedido() {
         currency: "AOA",
         num_items: quantidade,
       });
+      window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
     }
   }
 
@@ -333,11 +393,11 @@ function FormularioPedido() {
     }`;
 
   return (
-    <form noValidate className="border border-border bg-surface p-6 md:p-10">
+    <form onSubmit={onSubmit} noValidate className="border border-border bg-surface p-6 md:p-10">
       <div className="mb-8">
         <div className="flex items-baseline justify-between gap-4">
           <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground">
-            {etapa} de 5
+            {etapa} de {TOTAL_ETAPAS}
           </p>
           <p className="font-display text-xs tracking-[0.18em] text-gold">
             {ETAPAS_LABEL[etapa - 1]}
@@ -346,7 +406,7 @@ function FormularioPedido() {
         <div className="mt-3 h-1 w-full overflow-hidden bg-border">
           <div
             className="h-full bg-green transition-all duration-300"
-            style={{ width: `${(etapa / 5) * 100}%` }}
+            style={{ width: `${(etapa / TOTAL_ETAPAS) * 100}%` }}
           />
         </div>
         <p className="mt-3 hidden flex-wrap gap-x-4 gap-y-1 text-[10px] tracking-[0.12em] text-muted-foreground/60 sm:flex">
@@ -368,17 +428,25 @@ function FormularioPedido() {
       </div>
 
       <div ref={painelRef} className="scroll-mt-24">
-        {/* ETAPA 1 — QUANDO QUER RECEBER? */}
+        {/* ETAPA 1 — QUANDO QUER RECEBER? (data + período juntos) */}
         {etapa === 1 && (
           <div>
             <h3 className="font-display text-2xl tracking-tight text-foreground">
               QUANDO QUER RECEBER?
             </h3>
             <div className="mt-6 grid gap-3">
-              <button type="button" onClick={() => escolherDia(hojeISO())} className={opcao(dia === hojeISO())}>
+              <button
+                type="button"
+                onClick={() => escolherDia(hojeISO())}
+                className={opcao(dia === hojeISO())}
+              >
                 HOJE
               </button>
-              <button type="button" onClick={() => escolherDia(amanhaISO())} className={opcao(dia === amanhaISO())}>
+              <button
+                type="button"
+                onClick={() => escolherDia(amanhaISO())}
+                className={opcao(dia === amanhaISO())}
+              >
                 AMANHÃ
               </button>
               <button
@@ -409,16 +477,9 @@ function FormularioPedido() {
                 {erros.dia && <p className="mt-2 text-xs text-destructive">{erros.dia}</p>}
               </div>
             )}
-          </div>
-        )}
 
-        {/* ETAPA 2 — QUAL PERÍODO PREFERE? */}
-        {etapa === 2 && (
-          <div>
-            <h3 className="font-display text-2xl tracking-tight text-foreground">
-              QUAL PERÍODO PREFERE?
-            </h3>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <p className={`${rotulo} mt-8`}>PERÍODO (OPCIONAL)</p>
+            <div className="grid gap-3 sm:grid-cols-2">
               {PERIODOS.map((p) => (
                 <button
                   key={p}
@@ -430,12 +491,14 @@ function FormularioPedido() {
                 </button>
               ))}
             </div>
-            {erros.periodo && <p className="mt-3 text-xs text-destructive">{erros.periodo}</p>}
+            {erros.dia && !mostrarCalendario && (
+              <p className="mt-3 text-xs text-destructive">{erros.dia}</p>
+            )}
           </div>
         )}
 
-        {/* ETAPA 3 — ONDE SERÁ A ENTREGA? */}
-        {etapa === 3 && (
+        {/* ETAPA 2 — ONDE SERÁ A ENTREGA? */}
+        {etapa === 2 && (
           <div>
             <h3 className="font-display text-2xl tracking-tight text-foreground">
               ONDE SERÁ A ENTREGA?
@@ -464,8 +527,8 @@ function FormularioPedido() {
           </div>
         )}
 
-        {/* ETAPA 4 — DADOS DO CLIENTE */}
-        {etapa === 4 && (
+        {/* ETAPA 3 — DADOS DO CLIENTE */}
+        {etapa === 3 && (
           <div>
             <h3 className="font-display text-2xl tracking-tight text-foreground">SEUS DADOS</h3>
             <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -477,6 +540,8 @@ function FormularioPedido() {
                   id="nome"
                   name="nome"
                   autoComplete="name"
+                  enterKeyHint="next"
+                  autoCapitalize="words"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   aria-invalid={!!erros.nome}
@@ -493,8 +558,10 @@ function FormularioPedido() {
                 <input
                   id="telefone"
                   name="telefone"
-                  inputMode="tel"
+                  type="tel"
+                  inputMode="numeric"
                   autoComplete="tel"
+                  enterKeyHint="next"
                   value={telefone}
                   onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
                   aria-invalid={!!erros.telefone}
@@ -540,11 +607,13 @@ function FormularioPedido() {
                   id="endereco"
                   name="endereco"
                   rows={2}
+                  autoComplete="street-address"
+                  enterKeyHint="done"
                   value={endereco}
                   onChange={(e) => setEndereco(e.target.value)}
                   aria-invalid={!!erros.endereco}
                   className={campo}
-                  placeholder="Onde devemos entregar?"
+                  placeholder="Bairro, rua e ponto de referência"
                 />
                 {erros.endereco && (
                   <p className="mt-2 text-xs text-destructive">{erros.endereco}</p>
@@ -569,8 +638,8 @@ function FormularioPedido() {
           </div>
         )}
 
-        {/* ETAPA 5 — RESUMO */}
-        {etapa === 5 && (
+        {/* ETAPA 4 — RESUMO */}
+        {etapa === 4 && (
           <div>
             <h3 className="font-display text-2xl tracking-tight text-foreground">SEU PEDIDO</h3>
 
@@ -686,27 +755,14 @@ function FormularioPedido() {
               </div>
             </div>
 
-            <div className="mt-8 overflow-hidden">
-              <div className="grid grid-cols-2">
-                {CONTATOS.map((c, i) => (
-                  <a
-                    key={c.rede}
-                    href={c.tel}
-                    onClick={dispararLigacao}
-                    className={`${c.cor} flex flex-col items-center gap-1 px-2 py-4 text-center text-white transition-[filter] hover:brightness-110 ${
-                      i > 0 ? "border-l border-white/25" : ""
-                    }`}
-                  >
-                    <span className="font-display text-sm font-bold tracking-[0.2em]">
-                      {c.rede}
-                    </span>
-                    <span className="text-xs tracking-[0.15em] opacity-80">{c.numero}</span>
-                  </a>
-                ))}
-              </div>
-            </div>
+            <button
+              type="submit"
+              className="btn-green mt-8 w-full py-4 font-display text-sm tracking-[0.2em]"
+            >
+              🔥 FAZER MEU PEDIDO NO WHATSAPP
+            </button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              Toque na sua rede (Unitel ou Africell) e ligue — fazemos o pedido por telefone.
+              O pedido abre no WhatsApp já preenchido — revê tudo e toca em Enviar.
             </p>
             <button
               type="button"
@@ -772,7 +828,7 @@ function HomemForte() {
     ["Quanto custa o HOMEM FORTE?", "10.000 Kz o frasco de 500 ml."],
     [
       "Como faço o pedido?",
-      "Preenche o formulário e liga directamente para a Unitel (937 876 711) ou Africell (958 614 517). Confirmamos e organizamos a entrega de hoje.",
+      "Preenche o formulário em 3 passos rápidos e toca em \"FAZER MEU PEDIDO NO WHATSAPP\" — o pedido abre no WhatsApp já preenchido, é só enviar. Confirmamos e organizamos a entrega de hoje.",
     ],
     [
       "Como funciona o pagamento?",
@@ -796,9 +852,9 @@ function HomemForte() {
 
       <main>
         {/* SEÇÃO 1 — HERO EM VÍDEO */}
-        <section id="inicio" className="relative min-h-[92vh] overflow-hidden">
+        <section id="inicio" className="relative min-h-[92vh] overflow-hidden bg-background">
           <video
-            className="absolute inset-0 h-full w-full object-cover object-[50%_25%]"
+            className="absolute inset-0 h-full w-full object-contain object-top"
             src="/hero-video.mp4"
             autoPlay
             muted
@@ -1023,7 +1079,7 @@ function HomemForte() {
                 FAZER O PEDIDO EM 30 SEGUNDOS
               </h2>
               <p className="mt-4 text-sm text-muted-foreground">
-                5 perguntas rápidas e ligue directamente para a sua rede — Unitel ou Africell.
+                3 passos rápidos e o pedido é enviado direto para o nosso WhatsApp.
               </p>
             </Reveal>
             <div className="mt-10">
@@ -1091,6 +1147,27 @@ function HomemForte() {
               >
                 QUERO O HOMEM FORTE
               </a>
+              <p className="mt-8 text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                OU LIGUE DIRETAMENTE
+              </p>
+              <div className="mx-auto mt-4 max-w-md overflow-hidden">
+                <div className="grid grid-cols-2">
+                  {CONTATOS.map((c, i) => (
+                    <a
+                      key={c.rede}
+                      href={c.tel}
+                      className={`${c.cor} flex flex-col items-center gap-1 px-2 py-4 text-center text-white transition-[filter] hover:brightness-110 ${
+                        i > 0 ? "border-l border-white/25" : ""
+                      }`}
+                    >
+                      <span className="font-display text-sm font-bold tracking-[0.2em]">
+                        {c.rede}
+                      </span>
+                      <span className="text-xs tracking-[0.15em] opacity-80">{c.numero}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
             </Reveal>
           </div>
         </section>
