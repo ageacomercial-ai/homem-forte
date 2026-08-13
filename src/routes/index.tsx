@@ -867,7 +867,7 @@ function HomemForte() {
                 href="#pedido"
                 className="btn-green px-8 py-4 text-center font-display text-sm tracking-[0.2em]"
               >
-                QUERO O MEU HOJE — 10.000 Kz
+                QUERO O MEU HOJE PELO WHATSAPP — 10.000 Kz
               </a>
             </div>
 
@@ -1124,7 +1124,7 @@ function HomemForte() {
                 href="#pedido"
                 className="btn-green mt-10 inline-block px-12 py-4 font-display text-sm tracking-[0.2em]"
               >
-                QUERO O HOMEM FORTE
+                QUERO O HOMEM FORTE PELO WHATSAPP
               </a>
             </Reveal>
           </div>
@@ -1168,7 +1168,7 @@ function HomemForte() {
           href="#pedido"
           className="btn-green block py-4 text-center font-display text-sm tracking-[0.15em]"
         >
-          PEDIR AGORA — 10.000 Kz
+          PEDIR AGORA PELO WHATSAPP — 10.000 Kz
         </a>
       </div>
     </div>
