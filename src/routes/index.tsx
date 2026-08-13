@@ -20,6 +20,21 @@ const PRECO_UNITARIO = 10000;
 const PRECO_ENTREGA = 1000;
 const WHATSAPP = "244937876711";
 
+const CONTATOS = [
+  {
+    rede: "UNITEL",
+    numero: "937 876 711",
+    tel: "tel:+244937876711",
+    cor: "bg-[#00923F]",
+  },
+  {
+    rede: "AFRICELL",
+    numero: "958 614 517",
+    tel: "tel:+244958614517",
+    cor: "bg-[#E20613]",
+  },
+] as const;
+
 const PIXEL_ID = "1032782669666254";
 
 const PIXEL_SCRIPT = `!function(f,b,e,v,n,t,s)
@@ -869,6 +884,12 @@ function HomemForte() {
               >
                 FAZER O MEU PEDIDO PELO WHATSAPP : 10.000 KZS
               </a>
+              <a
+                href={CONTATOS[0].tel}
+                className="border border-border/80 bg-background/60 px-8 py-4 text-center font-display text-sm tracking-[0.2em] text-foreground backdrop-blur transition-colors hover:border-green hover:text-green"
+              >
+                📞 LIGAR AGORA
+              </a>
             </div>
 
             <p className="mt-5 text-xs tracking-[0.18em] text-muted-foreground">
@@ -1126,6 +1147,27 @@ function HomemForte() {
               >
                 FAZER O MEU PEDIDO PELO WHATSAPP : 10.000 KZS
               </a>
+              <p className="mt-8 text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                OU LIGUE DIRETAMENTE
+              </p>
+              <div className="mx-auto mt-4 max-w-md overflow-hidden">
+                <div className="grid grid-cols-2">
+                  {CONTATOS.map((c, i) => (
+                    <a
+                      key={c.rede}
+                      href={c.tel}
+                      className={`${c.cor} flex flex-col items-center gap-1 px-2 py-4 text-center text-white transition-[filter] hover:brightness-110 ${
+                        i > 0 ? "border-l border-white/25" : ""
+                      }`}
+                    >
+                      <span className="font-display text-sm font-bold tracking-[0.2em]">
+                        {c.rede}
+                      </span>
+                      <span className="text-xs tracking-[0.15em] opacity-80">{c.numero}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
             </Reveal>
           </div>
         </section>
@@ -1137,6 +1179,13 @@ function HomemForte() {
           <div>
             <p className="font-display text-lg tracking-[0.22em]">HOMEM FORTE</p>
             <p className="mt-2 text-sm text-muted-foreground">Produto de origem angolana.</p>
+            <div className="mt-4 flex flex-col gap-1 text-sm">
+              {CONTATOS.map((c) => (
+                <a key={c.rede} href={c.tel} className="text-green hover:underline">
+                  {c.rede}: {c.numero}
+                </a>
+              ))}
+            </div>
           </div>
           <nav aria-label="Rodapé" className="md:justify-self-end">
             <ul className="flex flex-wrap gap-6">
@@ -1157,6 +1206,17 @@ function HomemForte() {
           © {new Date().getFullYear()} HOMEM FORTE · H.F.
         </div>
       </footer>
+
+      {/* Ligação flutuante */}
+      <a
+        href={CONTATOS[0].tel}
+        aria-label="Ligar agora"
+        className="btn-green fixed bottom-24 right-4 z-50 grid h-14 w-14 place-items-center rounded-full md:bottom-6"
+      >
+        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true">
+          <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+        </svg>
+      </a>
 
       {/* CTA fixo mobile */}
       <div
