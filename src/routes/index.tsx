@@ -9,7 +9,6 @@ import ingrBeterraba from "@/assets/ingr-beterraba.jpg";
 import ingrMaca from "@/assets/ingr-maca.jpg";
 import { Reveal } from "@/components/Reveal";
 import { usePastHero } from "@/hooks/use-reveal";
-import { metaCapi } from "@/lib/capi";
 import {
   Accordion,
   AccordionContent,
@@ -358,8 +357,11 @@ function FormularioPedido() {
       const fbp = lerCookie("_fbp");
       const fbc = lerCookie("_fbc");
 
-      metaCapi({
-        data: {
+      fetch("/api/capi", {
+        method: "POST",
+        keepalive: true,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
           eventId,
           fbp,
           fbc,
@@ -370,7 +372,7 @@ function FormularioPedido() {
           quantidade,
           total,
           url: window.location.href,
-        },
+        }),
       }).catch((error) => console.error("[CAPI] Falha:", error));
 
       window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
