@@ -865,14 +865,9 @@ function HomemForte() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a
                 href="#pedido"
-                className="btn-green px-8 py-4 text-center"
+                className="btn-green px-8 py-4 text-center font-display text-sm tracking-[0.2em]"
               >
-                <span className="block font-display text-sm tracking-[0.2em]">
-                  FAZER O MEU PEDIDO — 10.000 Kz
-                </span>
-                <span className="mt-1 block text-[11px] uppercase tracking-[0.3em] text-white/75">
-                  WhatsApp
-                </span>
+                FAZER O MEU PEDIDO PELO WHATSAPP : 10.000 KZS
               </a>
             </div>
 
@@ -1127,14 +1122,9 @@ function HomemForte() {
               <p className="mt-8 font-display text-5xl tracking-tight text-gold">10.000 Kz</p>
               <a
                 href="#pedido"
-                className="btn-green mt-10 inline-block px-12 py-4 text-center"
+                className="btn-green mt-10 inline-block px-12 py-4 text-center font-display text-sm tracking-[0.2em]"
               >
-                <span className="block font-display text-sm tracking-[0.2em]">
-                  FAZER O MEU PEDIDO — 10.000 Kz
-                </span>
-                <span className="mt-1 block text-[11px] uppercase tracking-[0.3em] text-white/75">
-                  WhatsApp
-                </span>
+                FAZER O MEU PEDIDO PELO WHATSAPP : 10.000 KZS
               </a>
             </Reveal>
           </div>
@@ -1176,14 +1166,9 @@ function HomemForte() {
       >
         <a
           href="#pedido"
-          className="btn-green block py-4 text-center"
+          className="btn-green block py-4 text-center font-display text-sm tracking-[0.15em]"
         >
-          <span className="block font-display text-sm tracking-[0.15em]">
-            FAZER O MEU PEDIDO — 10.000 Kz
-          </span>
-          <span className="mt-1 block text-[11px] uppercase tracking-[0.3em] text-white/75">
-            WhatsApp
-          </span>
+          FAZER O MEU PEDIDO PELO WHATSAPP : 10.000 KZS
         </a>
       </div>
     </div>
